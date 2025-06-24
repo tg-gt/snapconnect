@@ -35,7 +35,7 @@ export interface PostMedia {
 	id: string;
 	post_id: string;
 	media_url: string;
-	media_type: 'photo' | 'video';
+	media_type: "photo" | "video";
 	order_index: number;
 	created_at: string;
 }
@@ -69,7 +69,7 @@ export interface Follow {
 	id: string;
 	follower_id: string;
 	following_id: string;
-	status: 'approved' | 'pending';
+	status: "approved" | "pending";
 	created_at: string;
 	follower?: User;
 	following?: User;
@@ -91,7 +91,7 @@ export interface Story {
 	id: string;
 	user_id: string;
 	media_url: string;
-	media_type: 'photo' | 'video';
+	media_type: "photo" | "video";
 	caption?: string;
 	expires_at: string;
 	created_at: string;
@@ -113,7 +113,7 @@ export interface Message {
 	sender_id: string;
 	recipient_id: string;
 	content?: string;
-	message_type: 'text' | 'post_share' | 'media';
+	message_type: "text" | "post_share" | "media";
 	post_id?: string;
 	media_url?: string;
 	is_read: boolean;
@@ -128,7 +128,7 @@ export interface Activity {
 	id: string;
 	user_id: string;
 	actor_id: string;
-	activity_type: 'like' | 'comment' | 'follow' | 'mention';
+	activity_type: "like" | "comment" | "follow" | "mention";
 	post_id?: string;
 	comment_id?: string;
 	is_read: boolean;
@@ -157,7 +157,7 @@ export interface CreatePostData {
 	location?: string;
 	media: {
 		uri: string;
-		type: 'photo' | 'video';
+		type: "photo" | "video";
 	}[];
 }
 
@@ -167,4 +167,4 @@ export interface UpdateProfileData {
 	bio?: string;
 	website?: string;
 	is_private?: boolean;
-} 
+}

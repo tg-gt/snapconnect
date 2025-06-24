@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FlatList, RefreshControl, View, ActivityIndicator } from "react-native";
+import {
+	FlatList,
+	RefreshControl,
+	View,
+	ActivityIndicator,
+} from "react-native";
 import { PostCard } from "./PostCard";
 import { Text } from "@/components/ui/text";
 import { Post } from "@/lib/types";
@@ -13,7 +18,7 @@ interface PostListProps {
 	hasMore?: boolean;
 	onRefresh?: () => void;
 	onLoadMore?: () => void;
-	onLike?: (postId: string) => void;
+	onLike?: (postId: string, isLiked: boolean) => void;
 	onComment?: (postId: string) => void;
 	onShare?: (postId: string) => void;
 	onProfilePress?: (userId: string) => void;
@@ -33,24 +38,32 @@ export function PostList({
 }: PostListProps) {
 	const { colorScheme } = useColorScheme();
 
-	const renderPost = useCallback(({ item }: { item: Post }) => (
-		<PostCard
-			post={item}
-			onLike={onLike}
-			onComment={onComment}
-			onShare={onShare}
-			onProfilePress={onProfilePress}
-		/>
-	), [onLike, onComment, onShare, onProfilePress]);
+	const renderPost = useCallback(
+		({ item }: { item: Post }) => (
+			<PostCard
+				key={item.id}
+				post={item}
+				onLike={(postId) => onLike?.(postId, item.is_liked || false)}
+				onComment={onComment}
+				onShare={onShare}
+				onProfilePress={onProfilePress}
+			/>
+		),
+		[onLike, onComment, onShare, onProfilePress],
+	);
 
 	const renderFooter = () => {
 		if (!loading || !hasMore) return null;
-		
+
 		return (
 			<View className="py-6 items-center">
-				<ActivityIndicator 
-					size="large" 
-					color={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground} 
+				<ActivityIndicator
+					size="large"
+					color={
+						colorScheme === "dark"
+							? colors.dark.foreground
+							: colors.light.foreground
+					}
 				/>
 			</View>
 		);
@@ -58,7 +71,7 @@ export function PostList({
 
 	const renderEmpty = () => {
 		if (loading) return null;
-		
+
 		return (
 			<View className="flex-1 items-center justify-center py-20">
 				<Text className="text-muted-foreground text-center">
@@ -84,7 +97,11 @@ export function PostList({
 				<RefreshControl
 					refreshing={refreshing}
 					onRefresh={onRefresh}
-					tintColor={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground}
+					tintColor={
+						colorScheme === "dark"
+							? colors.dark.foreground
+							: colors.light.foreground
+					}
 				/>
 			}
 			onEndReached={handleEndReached}
@@ -97,4 +114,4 @@ export function PostList({
 			initialNumToRender={3}
 		/>
 	);
-} 
+}

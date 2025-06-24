@@ -17,16 +17,16 @@ interface PostCardProps {
 
 const { width: screenWidth } = Dimensions.get("window");
 
-export function PostCard({ 
-	post, 
-	onLike, 
-	onComment, 
-	onShare, 
-	onProfilePress 
+export function PostCard({
+	post,
+	onLike,
+	onComment,
+	onShare,
+	onProfilePress,
 }: PostCardProps) {
 	const { colorScheme } = useColorScheme();
 	const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-	
+
 	const handleLike = () => {
 		onLike?.(post.id);
 	};
@@ -64,21 +64,25 @@ export function PostCard({
 		<View className="bg-background mb-4">
 			{/* Header */}
 			<View className="flex-row items-center px-4 py-3 border-b border-border">
-				<TouchableOpacity 
+				<TouchableOpacity
 					onPress={handleProfilePress}
 					className="flex-row items-center flex-1"
 				>
 					<View className="w-8 h-8 rounded-full bg-muted mr-3 items-center justify-center">
 						{post.user?.avatar_url ? (
-							<Image 
+							<Image
 								source={{ uri: post.user.avatar_url }}
 								style={{ width: 32, height: 32, borderRadius: 16 }}
 							/>
 						) : (
-							<Ionicons 
-								name="person" 
-								size={16} 
-								color={colorScheme === "dark" ? colors.dark.mutedForeground : colors.light.mutedForeground} 
+							<Ionicons
+								name="person"
+								size={16}
+								color={
+									colorScheme === "dark"
+										? colors.dark.mutedForeground
+										: colors.light.mutedForeground
+								}
 							/>
 						)}
 					</View>
@@ -94,10 +98,14 @@ export function PostCard({
 					</View>
 				</TouchableOpacity>
 				<TouchableOpacity>
-					<Ionicons 
-						name="ellipsis-horizontal" 
-						size={20} 
-						color={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground} 
+					<Ionicons
+						name="ellipsis-horizontal"
+						size={20}
+						color={
+							colorScheme === "dark"
+								? colors.dark.foreground
+								: colors.light.foreground
+						}
 					/>
 				</TouchableOpacity>
 			</View>
@@ -107,10 +115,11 @@ export function PostCard({
 				<View>
 					<Image
 						source={{ uri: post.media[currentMediaIndex]?.media_url }}
-						style={{ 
-							width: screenWidth, 
+						style={{
+							width: screenWidth,
 							height: screenWidth,
-							backgroundColor: colorScheme === "dark" ? colors.dark.muted : colors.light.muted
+							backgroundColor:
+								colorScheme === "dark" ? colors.dark.muted : colors.light.muted,
 						}}
 						contentFit="cover"
 					/>
@@ -129,32 +138,50 @@ export function PostCard({
 				<View className="flex-row items-center justify-between mb-3">
 					<View className="flex-row space-x-4">
 						<TouchableOpacity onPress={handleLike}>
-							<Ionicons 
-								name={post.is_liked ? "heart" : "heart-outline"} 
-								size={24} 
-								color={post.is_liked ? "#FF3040" : (colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground)} 
+							<Ionicons
+								name={post.is_liked ? "heart" : "heart-outline"}
+								size={24}
+								color={
+									post.is_liked
+										? "#FF3040"
+										: colorScheme === "dark"
+											? colors.dark.foreground
+											: colors.light.foreground
+								}
 							/>
 						</TouchableOpacity>
 						<TouchableOpacity onPress={handleComment}>
-							<Ionicons 
-								name="chatbubble-outline" 
-								size={24} 
-								color={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground} 
+							<Ionicons
+								name="chatbubble-outline"
+								size={24}
+								color={
+									colorScheme === "dark"
+										? colors.dark.foreground
+										: colors.light.foreground
+								}
 							/>
 						</TouchableOpacity>
 						<TouchableOpacity onPress={handleShare}>
-							<Ionicons 
-								name="paper-plane-outline" 
-								size={24} 
-								color={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground} 
+							<Ionicons
+								name="paper-plane-outline"
+								size={24}
+								color={
+									colorScheme === "dark"
+										? colors.dark.foreground
+										: colors.light.foreground
+								}
 							/>
 						</TouchableOpacity>
 					</View>
 					<TouchableOpacity>
-						<Ionicons 
-							name="bookmark-outline" 
-							size={24} 
-							color={colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground} 
+						<Ionicons
+							name="bookmark-outline"
+							size={24}
+							color={
+								colorScheme === "dark"
+									? colors.dark.foreground
+									: colors.light.foreground
+							}
 						/>
 					</TouchableOpacity>
 				</View>
@@ -163,7 +190,8 @@ export function PostCard({
 				{post.likes_count > 0 && (
 					<TouchableOpacity className="mb-2">
 						<Text className="font-semibold text-sm">
-							{post.likes_count.toLocaleString()} {post.likes_count === 1 ? 'like' : 'likes'}
+							{post.likes_count.toLocaleString()}{" "}
+							{post.likes_count === 1 ? "like" : "likes"}
 						</Text>
 					</TouchableOpacity>
 				)}
@@ -194,4 +222,4 @@ export function PostCard({
 			</View>
 		</View>
 	);
-} 
+}
