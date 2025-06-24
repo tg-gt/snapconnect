@@ -293,6 +293,13 @@ App
 - `components/create/PostEditor.tsx`
 - `components/create/CaptionEditor.tsx`
 
+**Create Tab User Flow:**
+1. User taps Create tab → Camera interface opens
+2. Camera shows Story/Post toggle at bottom
+3. User takes photo/video with current mode selected
+4. User proceeds to caption/editing screen appropriate for chosen content type
+5. User publishes to feed (Post) or stories (Story)
+
 **Key Features:**
 - Camera/gallery photo selection
 - Multi-photo carousel creation
