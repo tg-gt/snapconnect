@@ -1,4 +1,4 @@
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 
 import "react-native-get-random-values";
 import * as aesjs from "aes-js";
@@ -17,14 +17,33 @@ class LargeSecureStore {
 			new aesjs.Counter(1),
 		);
 		const encryptedBytes = cipher.encrypt(aesjs.utils.utf8.toBytes(value));
-		await SecureStore.setItemAsync(
-			key,
-			aesjs.utils.hex.fromBytes(encryptionKey),
-		);
+		
+		// Only use SecureStore on native platforms
+		if (Platform.OS !== 'web') {
+			await SecureStore.setItemAsync(
+				key,
+				aesjs.utils.hex.fromBytes(encryptionKey),
+			);
+		} else {
+			// On web, store encryption key in AsyncStorage with a prefix
+			await AsyncStorage.setItem(
+				`${key}_encryption_key`,
+				aesjs.utils.hex.fromBytes(encryptionKey),
+			);
+		}
 		return aesjs.utils.hex.fromBytes(encryptedBytes);
 	}
+	
 	private async _decrypt(key: string, value: string) {
-		const encryptionKeyHex = await SecureStore.getItemAsync(key);
+		let encryptionKeyHex: string | null;
+		
+		// Get encryption key based on platform
+		if (Platform.OS !== 'web') {
+			encryptionKeyHex = await SecureStore.getItemAsync(key);
+		} else {
+			encryptionKeyHex = await AsyncStorage.getItem(`${key}_encryption_key`);
+		}
+		
 		if (!encryptionKeyHex) {
 			return encryptionKeyHex;
 		}
@@ -35,6 +54,7 @@ class LargeSecureStore {
 		const decryptedBytes = cipher.decrypt(aesjs.utils.hex.toBytes(value));
 		return aesjs.utils.utf8.fromBytes(decryptedBytes);
 	}
+	
 	async getItem(key: string) {
 		const encrypted = await AsyncStorage.getItem(key);
 		if (!encrypted) {
@@ -42,10 +62,17 @@ class LargeSecureStore {
 		}
 		return await this._decrypt(key, encrypted);
 	}
+	
 	async removeItem(key: string) {
 		await AsyncStorage.removeItem(key);
-		await SecureStore.deleteItemAsync(key);
+		// Only use SecureStore on native platforms
+		if (Platform.OS !== 'web') {
+			await SecureStore.deleteItemAsync(key);
+		} else {
+			await AsyncStorage.removeItem(`${key}_encryption_key`);
+		}
 	}
+	
 	async setItem(key: string, value: string) {
 		const encrypted = await this._encrypt(key, value);
 		await AsyncStorage.setItem(key, encrypted);

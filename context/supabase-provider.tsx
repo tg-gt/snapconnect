@@ -101,7 +101,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		if (initialized) {
 			SplashScreen.hideAsync();
 			if (session) {
-				router.replace("/");
+				router.replace("/(protected)/(tabs)");
 			} else {
 				router.replace("/welcome");
 			}
