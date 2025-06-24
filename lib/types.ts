@@ -1,0 +1,170 @@
+// Database types for SnapConnect Instagram MVP
+
+export interface User {
+	id: string;
+	email: string;
+	username: string;
+	full_name?: string;
+	bio?: string;
+	avatar_url?: string;
+	website?: string;
+	is_private: boolean;
+	posts_count: number;
+	followers_count: number;
+	following_count: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface Post {
+	id: string;
+	user_id: string;
+	caption?: string;
+	location?: string;
+	likes_count: number;
+	comments_count: number;
+	created_at: string;
+	updated_at: string;
+	// Relations that will be joined
+	user?: User;
+	media?: PostMedia[];
+	is_liked?: boolean;
+}
+
+export interface PostMedia {
+	id: string;
+	post_id: string;
+	media_url: string;
+	media_type: 'photo' | 'video';
+	order_index: number;
+	created_at: string;
+}
+
+export interface Like {
+	id: string;
+	user_id: string;
+	post_id: string;
+	created_at: string;
+	user?: User;
+}
+
+export interface Comment {
+	id: string;
+	user_id: string;
+	post_id: string;
+	content: string;
+	likes_count: number;
+	created_at: string;
+	user?: User;
+	is_liked?: boolean;
+}
+
+export interface CommentLike {
+	user_id: string;
+	comment_id: string;
+	created_at: string;
+}
+
+export interface Follow {
+	id: string;
+	follower_id: string;
+	following_id: string;
+	status: 'approved' | 'pending';
+	created_at: string;
+	follower?: User;
+	following?: User;
+}
+
+export interface Hashtag {
+	id: string;
+	name: string;
+	posts_count: number;
+	created_at: string;
+}
+
+export interface PostHashtag {
+	post_id: string;
+	hashtag_id: string;
+}
+
+export interface Story {
+	id: string;
+	user_id: string;
+	media_url: string;
+	media_type: 'photo' | 'video';
+	caption?: string;
+	expires_at: string;
+	created_at: string;
+	user?: User;
+	views_count?: number;
+	has_viewed?: boolean;
+}
+
+export interface StoryView {
+	id: string;
+	story_id: string;
+	viewer_id: string;
+	viewed_at: string;
+	viewer?: User;
+}
+
+export interface Message {
+	id: string;
+	sender_id: string;
+	recipient_id: string;
+	content?: string;
+	message_type: 'text' | 'post_share' | 'media';
+	post_id?: string;
+	media_url?: string;
+	is_read: boolean;
+	read_at?: string;
+	created_at: string;
+	sender?: User;
+	recipient?: User;
+	post?: Post;
+}
+
+export interface Activity {
+	id: string;
+	user_id: string;
+	actor_id: string;
+	activity_type: 'like' | 'comment' | 'follow' | 'mention';
+	post_id?: string;
+	comment_id?: string;
+	is_read: boolean;
+	created_at: string;
+	actor?: User;
+	post?: Post;
+	comment?: Comment;
+}
+
+// API Response types
+export interface FeedResponse {
+	posts: Post[];
+	next_cursor?: string;
+	has_more: boolean;
+}
+
+export interface UserProfile extends User {
+	posts: Post[];
+	is_following?: boolean;
+	is_followed_by?: boolean;
+}
+
+// Form types
+export interface CreatePostData {
+	caption?: string;
+	location?: string;
+	media: {
+		uri: string;
+		type: 'photo' | 'video';
+	}[];
+}
+
+export interface UpdateProfileData {
+	username?: string;
+	full_name?: string;
+	bio?: string;
+	website?: string;
+	is_private?: boolean;
+} 
