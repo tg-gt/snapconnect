@@ -57,26 +57,27 @@ Build a functional Snapchat clone with essential social features including camer
   "expo-image-picker": "~16.1.4",
   "expo-gl": "~15.1.6",
   "expo-gl-cpp": "~11.4.0",
-  "react-native-svg": "^15.12.0",
-  "react-native-gesture-handler": "~2.26.0",
-  "react-native-reanimated": "~3.15.0"
+  "react-native-svg": "^15.12.0"
 }
 ```
+*Note: react-native-gesture-handler and react-native-reanimated already exist*
 
-### Database Schema Extensions (Supabase)
+### Database Schema (Supabase)
 
-#### Users Table Enhancement
+#### Core Tables Setup
 ```sql
--- Add to existing users table
-ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(30) UNIQUE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS snap_score INTEGER DEFAULT 0;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-```
+-- Enhanced users table (since no tables currently exist)
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  username VARCHAR(30) UNIQUE NOT NULL,
+  avatar_url TEXT,
+  bio TEXT,
+  snap_score INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
 
-#### New Tables
-```sql
 -- Friends relationships
 CREATE TABLE friendships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -84,7 +85,8 @@ CREATE TABLE friendships (
   addressee_id UUID REFERENCES users(id) ON DELETE CASCADE,
   status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, blocked
   created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(requester_id, addressee_id)
 );
 
 -- Snaps (ephemeral messages)
@@ -135,6 +137,53 @@ CREATE TABLE messages (
 );
 ```
 
+#### Real-time Subscriptions Required
+- **messages** - for live chat functionality
+- **story_views** - for real-time view counts on stories
+- **friendships** - for friend request notifications
+- **snaps** - for delivery/read status updates
+
+#### RLS Policies Setup
+*Note: Basic security model - detailed policies to be configured during implementation*
+- Users can only access their own data by default
+- Friends can see each other's stories/snaps based on friendship status
+- Messages only visible to sender/recipient
+- Story views only visible to story creator
+
+---
+
+## Navigation Architecture
+
+### Updated Tab Structure (Based on Snapchat's 5-tab layout)
+```
+Map (Optional) | Chat | Camera | Stories | Discover
+```
+
+**For MVP, we'll implement 3 core tabs:**
+1. **Chat** - Messages + Friend management
+2. **Camera** - Main camera interface (center position)
+3. **Stories** - Friend stories + Profile access
+
+**Current tabs (Home, Settings) will be replaced with Snapchat-style navigation**
+
+### Screen Hierarchy
+```
+App
+├── (auth)
+│   ├── sign-in.tsx
+│   ├── sign-up.tsx
+│   └── welcome.tsx
+└── (protected)
+    ├── (tabs)
+    │   ├── chat.tsx        // Messages + Friends
+    │   ├── camera.tsx      // Camera (center)
+    │   └── stories.tsx     // Stories + Profile
+    ├── snap-composer.tsx   // Full-screen snap creation
+    ├── snap-viewer.tsx     // Individual snap viewing
+    ├── story-viewer.tsx    // Story viewing interface
+    └── profile.tsx         // User profile management
+```
+
 ---
 
 ## Feature Specifications
@@ -172,7 +221,7 @@ CREATE TABLE messages (
 
 **Key Features:**
 - Search users by username
-- Send/accept/decline friend requests
+- Send/accept/decline friend requests  
 - Friends list with online status
 - Block/unblock functionality
 
@@ -200,27 +249,20 @@ CREATE TABLE messages (
 - Read receipts
 - Message history
 
-### 6. Enhanced Navigation
-**Files to Update:**
-- `app/(protected)/(tabs)/_layout.tsx` - Add camera, chat, stories tabs
-- `app/(protected)/(tabs)/camera.tsx` - New camera screen
-- `app/(protected)/(tabs)/chat.tsx` - Chat list screen
-- `app/(protected)/(tabs)/stories.tsx` - Stories feed screen
-
 ---
 
 ## Implementation Plan
 
 ### Phase 1A: Core Infrastructure (Day 1)
-1. **Database Setup**
-   - Create/update Supabase tables
-   - Set up storage buckets for media
-   - Configure RLS policies
+1. **Database & Storage Setup**
+   - Deploy Supabase schema (all tables in single migration)
+   - Configure storage buckets for media
+   - Set up basic RLS policies
 
-2. **Basic Navigation**
-   - Add camera, chat, stories tabs
-   - Create placeholder screens
-   - Update routing structure
+2. **Navigation Update**
+   - Replace existing tabs with camera/chat/stories
+   - Create new screen structure
+   - Basic routing implementation
 
 3. **Camera Integration**
    - Install camera dependencies
@@ -288,27 +330,29 @@ CREATE TABLE messages (
 
 ---
 
-## Task Breakdown for AI Development
+## Decisions Made Now vs Later
 
-### Phase 1 Tasks
-1. **Setup Database Schema** - Create all required Supabase tables and policies
-2. **Install Camera Dependencies** - Add required packages and configure
-3. **Create Camera Component** - Basic photo/video capture functionality
-4. **Update Navigation** - Add new tabs and routing structure
-5. **Create Media Upload Service** - Supabase Storage integration
+### ✅ **NOW (Critical for MVP architecture):**
+- Navigation structure (3-tab layout)
+- Database schema (all tables defined)
+- Real-time subscription requirements
+- Core component architecture
+- Authentication flow integration
 
-### Phase 2 Tasks
-1. **Build Snap Composer** - Complete snap creation and sending flow
-2. **Implement Friend System** - Search, add, and manage friends
-3. **Create Basic Filters** - Photo enhancement tools
-4. **Add Timer System** - Ephemeral message expiration
-5. **Build Chat Interface** - Real-time messaging foundation
+### ⏳ **LATER (Implementation details):**
+- Specific filter algorithms and UI
+- Exact RLS policy configurations
+- Media compression strategies
+- Offline queuing mechanisms
+- Push notification setup
+- Advanced privacy controls
+- Performance optimizations
 
-### Phase 3 Tasks
-1. **Implement Stories Feature** - Complete stories creation and viewing
-2. **Add Real-time Updates** - Supabase Realtime integration
-3. **Build Profile Management** - User profiles and settings
-4. **Testing & Bug Fixes** - Ensure all features work properly
-5. **Deployment Preparation** - Ready for MVP submission
+### 🤔 **Flexible (Can adapt during development):**
+- Basic filter implementations vs advanced AR
+- Image picker vs full camera interface
+- Message storage duration
+- Friend discovery methods
+- Profile customization depth
 
 This PRD provides a clear roadmap for building the MVP with specific, actionable tasks that can be executed through AI-driven development using Cursor Agent mode.
