@@ -1,48 +1,53 @@
 I'll create a comprehensive PRD for the MVP submission that can be broken down into actionable tasks for AI-driven development.
 
 # Product Requirements Document: SnapConnect MVP
-## Snapchat Clone with Core Social Features
+## Instagram Clone with Core Social Features
 
 ### Executive Summary
-Build a functional Snapchat clone with essential social features including camera functionality, ephemeral messaging, friend management, and stories. This MVP serves as the foundation for Phase 2 RAG enhancements.
+Build a functional Instagram clone with essential social features including photo/video posts, feed consumption, social interactions (likes/comments), discovery, and profile management. This MVP serves as the foundation for Phase 2 RAG enhancements.
 
 ### Target User & Use Cases
 **Primary User:** Social Connectors - College students sharing campus life and maintaining friendships
-**MVP Scope:** Core social sharing without RAG features
+**MVP Scope:** Core social sharing with permanent content model
 
 ---
 
 ## Core User Stories
 
-### 1. Camera & Media Capture
-- **As a user**, I want to take photos and videos using the in-app camera
-- **As a user**, I want to apply basic filters and effects to my photos
-- **As a user**, I want to add text overlays and drawings to my snaps
+### 1. Feed Consumption & Discovery
+- **As a user**, I want to view a personalized feed of posts from accounts I follow
+- **As a user**, I want to scroll through posts with infinite scrolling
+- **As a user**, I want to explore trending content and discover new accounts
 
-### 2. Ephemeral Messaging
-- **As a user**, I want to send photos/videos that disappear after viewing
-- **As a user**, I want to set custom timer durations (3-10 seconds)
-- **As a user**, I want to see if someone has viewed my snap
+### 2. Post Creation & Sharing
+- **As a user**, I want to create posts with photos/videos, captions, and hashtags
+- **As a user**, I want to share multiple photos in a single post (carousel)
+- **As a user**, I want to tag my location and other users in posts
 
-### 3. Friend Management
-- **As a user**, I want to add friends by username or phone number
-- **As a user**, I want to accept/decline friend requests
-- **As a user**, I want to see my friends list and their online status
+### 3. Social Interactions
+- **As a user**, I want to like and comment on posts
+- **As a user**, I want to see who liked my posts and respond to comments
+- **As a user**, I want to share posts with friends via direct messages
 
-### 4. Stories Feature
-- **As a user**, I want to post snaps to my story that last 24 hours
-- **As a user**, I want to view friends' stories in a feed
-- **As a user**, I want to see who viewed my story
+### 4. Profile Management
+- **As a user**, I want to curate my profile with a grid of my posts
+- **As a user**, I want to edit my bio, profile picture, and account settings
+- **As a user**, I want to see my follower/following counts and post statistics
 
-### 5. Real-time Messaging
-- **As a user**, I want to send text messages to friends
-- **As a user**, I want to see typing indicators and read receipts
-- **As a user**, I want message history (non-ephemeral chat)
+### 5. Follow System
+- **As a user**, I want to follow/unfollow accounts to customize my feed
+- **As a user**, I want to see follow suggestions based on mutual connections
+- **As a user**, I want to manage followers (approve/remove for private accounts)
 
-### 6. User Profile
-- **As a user**, I want to customize my profile with avatar and bio
-- **As a user**, I want to see my snap score and streak counts
-- **As a user**, I want to manage privacy settings
+### 6. Stories Feature
+- **As a user**, I want to post ephemeral stories that disappear after 24 hours
+- **As a user**, I want to view friends' stories in a separate stories bar
+- **As a user**, I want to see who viewed my stories
+
+### 7. Direct Messaging
+- **As a user**, I want to send private messages to other users
+- **As a user**, I want to share posts directly via DMs
+- **As a user**, I want to see message status and typing indicators
 
 ---
 
@@ -55,9 +60,10 @@ Build a functional Snapchat clone with essential social features including camer
   "expo-media-library": "~17.1.7",
   "expo-av": "~15.1.6",
   "expo-image-picker": "~16.1.4",
-  "expo-gl": "~15.1.6",
-  "expo-gl-cpp": "~11.4.0",
-  "react-native-svg": "^15.12.0"
+  "expo-image-manipulator": "~13.1.4",
+  "react-native-svg": "^15.12.0",
+  "@expo/vector-icons": "^14.2.2",
+  "expo-gl": "~15.1.6"
 }
 ```
 *Note: react-native-gesture-handler and react-native-reanimated already exist*
@@ -66,45 +72,97 @@ Build a functional Snapchat clone with essential social features including camer
 
 #### Core Tables Setup
 ```sql
--- Enhanced users table (since no tables currently exist)
+-- Enhanced users table
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   username VARCHAR(30) UNIQUE NOT NULL,
-  avatar_url TEXT,
+  full_name VARCHAR(100),
   bio TEXT,
-  snap_score INTEGER DEFAULT 0,
+  avatar_url TEXT,
+  website VARCHAR(255),
+  is_private BOOLEAN DEFAULT FALSE,
+  posts_count INTEGER DEFAULT 0,
+  followers_count INTEGER DEFAULT 0,
+  following_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Friends relationships
-CREATE TABLE friendships (
+-- Posts (permanent content)
+CREATE TABLE posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  requester_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  addressee_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, blocked
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  caption TEXT,
+  location TEXT,
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(requester_id, addressee_id)
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Snaps (ephemeral messages)
-CREATE TABLE snaps (
+-- Post media (supports carousels)
+CREATE TABLE post_media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
   media_url TEXT NOT NULL,
   media_type VARCHAR(10) NOT NULL, -- photo, video
-  caption TEXT,
-  duration INTEGER DEFAULT 3, -- seconds
-  is_viewed BOOLEAN DEFAULT FALSE,
-  viewed_at TIMESTAMP,
-  expires_at TIMESTAMP NOT NULL,
+  order_index INTEGER NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Stories
+-- Likes system
+CREATE TABLE likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, post_id)
+);
+
+-- Comments system  
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Comment likes
+CREATE TABLE comment_likes (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY(user_id, comment_id)
+);
+
+-- Follow system
+CREATE TABLE follows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  following_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'approved', -- approved, pending (for private accounts)
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+-- Hashtags
+CREATE TABLE hashtags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) UNIQUE NOT NULL,
+  posts_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE post_hashtags (
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  hashtag_id UUID REFERENCES hashtags(id) ON DELETE CASCADE,
+  PRIMARY KEY(post_id, hashtag_id)
+);
+
+-- Stories (ephemeral content)
 CREATE TABLE stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -124,47 +182,67 @@ CREATE TABLE story_views (
   UNIQUE(story_id, viewer_id)
 );
 
--- Chat messages (persistent)
+-- Direct messages
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
   recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  message_type VARCHAR(20) DEFAULT 'text', -- text, snap, media
+  content TEXT,
+  message_type VARCHAR(20) DEFAULT 'text', -- text, post_share, media
+  post_id UUID REFERENCES posts(id), -- for shared posts
+  media_url TEXT, -- for direct media
   is_read BOOLEAN DEFAULT FALSE,
   read_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Activity feed (notifications)
+CREATE TABLE activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- recipient
+  actor_id UUID REFERENCES users(id) ON DELETE CASCADE, -- who performed action
+  activity_type VARCHAR(20) NOT NULL, -- like, comment, follow, mention
+  post_id UUID REFERENCES posts(id),
+  comment_id UUID REFERENCES comments(id),
+  is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
 #### Real-time Subscriptions Required
-- **messages** - for live chat functionality
-- **story_views** - for real-time view counts on stories
-- **friendships** - for friend request notifications
-- **snaps** - for delivery/read status updates
+- **posts** - for new posts in feed
+- **likes** - for real-time like counts
+- **comments** - for live comment updates
+- **follows** - for follow notifications
+- **messages** - for direct messaging
+- **activities** - for activity notifications
+- **story_views** - for story view tracking
 
 #### RLS Policies Setup
 *Note: Basic security model - detailed policies to be configured during implementation*
-- Users can only access their own data by default
-- Friends can see each other's stories/snaps based on friendship status
+- Users can see posts from public accounts and accounts they follow
+- Private account posts only visible to approved followers
+- Users can only edit their own content
+- Activity notifications only visible to the recipient
 - Messages only visible to sender/recipient
-- Story views only visible to story creator
 
 ---
 
 ## Navigation Architecture
 
-### Updated Tab Structure (Based on Snapchat's 5-tab layout)
+### Instagram-Style Tab Structure
 ```
-Map (Optional) | Chat | Camera | Stories | Discover
+Home | Search | Create | Activity | Profile
 ```
 
-**For MVP, we'll implement 3 core tabs:**
-1. **Chat** - Messages + Friend management
-2. **Camera** - Main camera interface (center position)
-3. **Stories** - Friend stories + Profile access
+**5-tab navigation implementing Instagram's core structure:**
+1. **Home** - Feed of posts from followed accounts
+2. **Search** - Explore trending content and discover accounts  
+3. **Create** - Post creation (camera/gallery) - center position
+4. **Activity** - Likes, comments, follows notifications
+5. **Profile** - User profile with post grid
 
-**Current tabs (Home, Settings) will be replaced with Snapchat-style navigation**
+**Current tabs (Home, Settings) will be completely replaced with Instagram navigation**
 
 ### Screen Hierarchy
 ```
@@ -175,184 +253,222 @@ App
 │   └── welcome.tsx
 └── (protected)
     ├── (tabs)
-    │   ├── chat.tsx        // Messages + Friends
-    │   ├── camera.tsx      // Camera (center)
-    │   └── stories.tsx     // Stories + Profile
-    ├── snap-composer.tsx   // Full-screen snap creation
-    ├── snap-viewer.tsx     // Individual snap viewing
-    ├── story-viewer.tsx    // Story viewing interface
-    └── profile.tsx         // User profile management
+    │   ├── home.tsx           // Feed of posts
+    │   ├── search.tsx         // Explore/Discovery
+    │   ├── create.tsx         // Post creation
+    │   ├── activity.tsx       // Notifications
+    │   └── profile.tsx        // User profile grid
+    ├── post-details.tsx       // Individual post view
+    ├── story-viewer.tsx       // Stories interface
+    ├── user-profile.tsx       // Other users' profiles
+    ├── edit-profile.tsx       // Profile editing
+    ├── messages/
+    │   ├── index.tsx          // DM inbox
+    │   └── chat.tsx           // Individual chat
+    └── camera/
+        ├── capture.tsx        // Camera interface
+        └── edit.tsx           // Post editing
 ```
 
 ---
 
 ## Feature Specifications
 
-### 1. Camera Module
+### 1. Home Feed
 **Files to Create:**
-- `components/camera/CameraView.tsx`
-- `components/camera/FilterControls.tsx`
-- `components/camera/MediaPreview.tsx`
+- `components/feed/PostList.tsx`
+- `components/feed/PostCard.tsx`
+- `components/feed/StoriesBar.tsx`
 
 **Key Features:**
-- Front/back camera toggle
-- Photo/video capture with preview
-- Basic filters (brightness, contrast, saturation)
-- Text overlay and drawing tools
-- Timer functionality
+- Infinite scroll feed of posts
+- Stories bar at top
+- Pull-to-refresh functionality
+- Like/comment interactions
+- Post sharing
 
-### 2. Snap Sharing System
+### 2. Post Creation System
 **Files to Create:**
-- `components/snap/SnapComposer.tsx`
-- `components/snap/SnapViewer.tsx`
-- `components/snap/SnapTimer.tsx`
+- `components/create/CameraCapture.tsx`
+- `components/create/PostEditor.tsx`
+- `components/create/CaptionEditor.tsx`
 
 **Key Features:**
-- Select recipients from friends list
-- Set viewing duration (3-10 seconds)
-- Auto-delete after expiration
-- View tracking and notifications
+- Camera/gallery photo selection
+- Multi-photo carousel creation
+- Caption and hashtag editing
+- Location tagging
+- Story vs Post toggle
 
-### 3. Friend Management
+### 3. Social Interactions
 **Files to Create:**
-- `components/friends/FriendsList.tsx`
-- `components/friends/AddFriend.tsx`
-- `components/friends/FriendRequests.tsx`
+- `components/social/LikeButton.tsx`
+- `components/social/CommentSection.tsx`
+- `components/social/ShareSheet.tsx`
 
 **Key Features:**
-- Search users by username
-- Send/accept/decline friend requests  
-- Friends list with online status
-- Block/unblock functionality
+- Double-tap to like posts
+- Comment threads with likes
+- Share posts via DM
+- Activity notifications
 
-### 4. Stories Feature
+### 4. Profile Management
+**Files to Create:**
+- `components/profile/ProfileHeader.tsx`
+- `components/profile/PostGrid.tsx` 
+- `components/profile/EditProfile.tsx`
+
+**Key Features:**
+- Profile statistics (posts/followers/following)
+- Photo grid layout
+- Bio and profile picture editing
+- Follow/unfollow functionality
+
+### 5. Discovery & Search
+**Files to Create:**
+- `components/search/SearchBar.tsx`
+- `components/search/ExploreGrid.tsx`
+- `components/search/UserSearch.tsx`
+
+**Key Features:**
+- Hashtag and user search
+- Trending content grid
+- User discovery suggestions
+- Search history
+
+### 6. Stories System
 **Files to Create:**
 - `components/stories/StoryCreator.tsx`
 - `components/stories/StoryViewer.tsx`
-- `components/stories/StoriesFeed.tsx`
+- `components/stories/StoriesRing.tsx`
 
 **Key Features:**
-- Create stories with 24-hour expiration
-- Swipe navigation between stories
-- View count and viewer list
-- Automatic story deletion
+- 24-hour ephemeral stories
+- Story creation with camera
+- Stories bar with user rings
+- View tracking
 
-### 5. Messaging System
+### 7. Messaging System
 **Files to Create:**
-- `components/chat/ChatList.tsx`
-- `components/chat/ChatScreen.tsx`
-- `components/chat/MessageBubble.tsx`
+- `components/messages/MessagesList.tsx`
+- `components/messages/ChatScreen.tsx`
+- `components/messages/PostShare.tsx`
 
 **Key Features:**
-- Real-time messaging with Supabase Realtime
-- Typing indicators
+- Direct message conversations
+- Post sharing in messages
+- Media sharing in DMs
 - Read receipts
-- Message history
 
 ---
 
 ## Implementation Plan
 
-### Phase 1A: Core Infrastructure (Day 1)
+### Phase 1A: Core Feed Infrastructure (Day 1)
 1. **Database & Storage Setup**
-   - Deploy Supabase schema (all tables in single migration)
-   - Configure storage buckets for media
+   - Deploy complete Instagram schema
+   - Configure media storage buckets
    - Set up basic RLS policies
 
-2. **Navigation Update**
-   - Replace existing tabs with camera/chat/stories
-   - Create new screen structure
-   - Basic routing implementation
+2. **Navigation & Feed Foundation**
+   - Implement 5-tab Instagram navigation
+   - Create basic home feed with infinite scroll
+   - Set up post data models
 
-3. **Camera Integration**
-   - Install camera dependencies
-   - Create basic camera view
-   - Implement photo/video capture
+3. **Post Creation Basics**
+   - Camera/gallery integration
+   - Basic photo upload functionality
+   - Simple post creation flow
 
-### Phase 1B: Media & Sharing (Day 2)
-1. **Media Management**
-   - Upload to Supabase Storage
-   - Create media preview component
-   - Implement basic filters
+### Phase 1B: Social Features & Interactions (Day 2)
+1. **Social Engagement System**
+   - Like/unlike functionality
+   - Comment system with threads
+   - Real-time engagement updates
 
-2. **Snap System**
-   - Create snap composer
-   - Implement recipient selection
-   - Add timer functionality
+2. **Profile System**
+   - User profile with post grid
+   - Follow/unfollow functionality  
+   - Profile editing capabilities
 
-3. **Friend System Foundation**
-   - User search functionality
-   - Friend request system
-   - Friends list display
+3. **Discovery & Search**
+   - Basic search functionality
+   - Hashtag support
+   - User discovery
 
-### Phase 1C: Social Features (Day 3)
+### Phase 1C: Stories & Advanced Features (Day 3)
 1. **Stories Implementation**
-   - Story creation flow
-   - Stories feed with swipe navigation
-   - View tracking system
+   - Story creation and viewing
+   - Stories bar in home feed
+   - 24-hour expiration system
 
-2. **Real-time Messaging**
-   - Chat interface
-   - Supabase Realtime integration
-   - Message history
+2. **Activity & Messaging**
+   - Activity notifications feed
+   - Basic direct messaging
+   - Post sharing functionality
 
-3. **Profile & Settings**
-   - User profile page
-   - Settings screen
-   - Privacy controls
+3. **Polish & Testing**
+   - UI refinements
+   - Performance optimizations
+   - Bug fixes and testing
 
 ---
 
 ## Success Criteria
 
 ### Functional Requirements
-- [ ] Users can register, login, and logout
-- [ ] Users can take photos/videos with in-app camera
-- [ ] Users can send ephemeral snaps that disappear after viewing
-- [ ] Users can add friends and manage friend requests
+- [ ] Users can create accounts and set up profiles
+- [ ] Users can create posts with photos/videos and captions
+- [ ] Users can view a personalized home feed
+- [ ] Users can like and comment on posts
+- [ ] Users can follow/unfollow other users
+- [ ] Users can search and discover content/users
 - [ ] Users can create and view 24-hour stories
-- [ ] Users can send real-time text messages
-- [ ] Users can customize their profile
+- [ ] Users can send direct messages
 
 ### Technical Requirements
 - [ ] App works on both iOS and Android
-- [ ] Real-time features work without refresh
+- [ ] Real-time updates for likes/comments
 - [ ] Media uploads successfully to Supabase Storage
-- [ ] Ephemeral messages auto-delete properly
-- [ ] App handles offline/online states gracefully
+- [ ] Infinite scroll performs smoothly
+- [ ] Stories auto-delete after 24 hours
+- [ ] App handles offline states gracefully
 
 ### Performance Requirements
-- [ ] Camera launches within 2 seconds
-- [ ] Media uploads complete within 10 seconds
-- [ ] Messages send/receive within 1 second
-- [ ] Stories load within 3 seconds
-- [ ] App remains responsive during media processing
+- [ ] Feed loads within 3 seconds
+- [ ] Post creation completes within 10 seconds
+- [ ] Like/comment actions respond within 1 second
+- [ ] Search results appear within 2 seconds
+- [ ] Stories load and play smoothly
+- [ ] App maintains 60fps during scrolling
 
 ---
 
 ## Decisions Made Now vs Later
 
 ### ✅ **NOW (Critical for MVP architecture):**
-- Navigation structure (3-tab layout)
-- Database schema (all tables defined)
+- Navigation structure (5-tab Instagram layout)
+- Database schema (complete Instagram data model)
+- Content model (permanent posts vs ephemeral)
 - Real-time subscription requirements
 - Core component architecture
-- Authentication flow integration
+- Feed-first user experience flow
 
 ### ⏳ **LATER (Implementation details):**
-- Specific filter algorithms and UI
-- Exact RLS policy configurations
-- Media compression strategies
-- Offline queuing mechanisms
-- Push notification setup
+- Advanced camera filters and editing
+- Exact recommendation algorithms
+- Push notification configurations
 - Advanced privacy controls
-- Performance optimizations
+- Content moderation systems
+- Analytics and insights
+- Advanced messaging features
 
 ### 🤔 **Flexible (Can adapt during development):**
-- Basic filter implementations vs advanced AR
-- Image picker vs full camera interface
-- Message storage duration
-- Friend discovery methods
-- Profile customization depth
+- Post editing capabilities
+- Story advanced features (polls, questions)
+- Comment moderation tools
+- Account verification systems
+- Advertising integration points
+- Advanced search filters
 
-This PRD provides a clear roadmap for building the MVP with specific, actionable tasks that can be executed through AI-driven development using Cursor Agent mode.
+This PRD provides a clear roadmap for building an Instagram MVP with specific, actionable tasks that can be executed through AI-driven development using Cursor Agent mode.
