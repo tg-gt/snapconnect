@@ -7,6 +7,8 @@ import {
 	Comment,
 	Activity,
 	UpdateProfileData,
+	Story,
+	StoryView,
 } from "@/lib/types";
 
 // Posts API
@@ -581,6 +583,350 @@ export async function updateUserProfile(
 		return data;
 	} catch (error) {
 		console.error("Error updating profile:", error);
+		throw error;
+	}
+}
+
+// Stories API
+export async function getStories(): Promise<Story[]> {
+	try {
+		const {
+			data: { user: currentUser },
+		} = await supabase.auth.getUser();
+
+		if (!currentUser) throw new Error("User not authenticated");
+
+		// Get stories from followed users (including own stories)
+		const { data: followedUsers } = await supabase
+			.from("follows")
+			.select("following_id")
+			.eq("follower_id", currentUser.id);
+
+		const followingIds = followedUsers?.map((f) => f.following_id) || [];
+		followingIds.push(currentUser.id); // Include own stories
+
+		const { data: stories, error } = await supabase
+			.from("stories")
+			.select(
+				`
+				*,
+				user:users!stories_user_id_fkey(
+					id, username, full_name, avatar_url
+				)
+			`,
+			)
+			.in("user_id", followingIds)
+			.gt("expires_at", new Date().toISOString())
+			.order("created_at", { ascending: false });
+
+		if (error) throw error;
+
+		// Check which stories current user has viewed
+		const storyIds = stories?.map((s) => s.id) || [];
+		let viewedStoryIds: string[] = [];
+		
+		if (storyIds.length > 0) {
+			const { data: views } = await supabase
+				.from("story_views")
+				.select("story_id")
+				.eq("viewer_id", currentUser.id)
+				.in("story_id", storyIds);
+
+			viewedStoryIds = views?.map((v) => v.story_id) || [];
+		}
+
+		// Add view counts and view status
+		const storiesWithData = await Promise.all(
+			(stories || []).map(async (story) => {
+				const { count } = await supabase
+					.from("story_views")
+					.select("*", { count: "exact" })
+					.eq("story_id", story.id);
+
+				return {
+					...story,
+					views_count: count || 0,
+					has_viewed: viewedStoryIds.includes(story.id),
+				};
+			}),
+		);
+
+		return storiesWithData;
+	} catch (error) {
+		console.error("Error fetching stories:", error);
+		throw error;
+	}
+}
+
+export async function createStory(storyData: {
+	media_url: string;
+	media_type: "photo" | "video";
+	caption?: string;
+}): Promise<Story> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		const { data: story, error } = await supabase
+			.from("stories")
+			.insert({
+				user_id: user.id,
+				media_url: storyData.media_url,
+				media_type: storyData.media_type,
+				caption: storyData.caption,
+			})
+			.select(
+				`
+				*,
+				user:users!stories_user_id_fkey(
+					id, username, full_name, avatar_url
+				)
+			`,
+			)
+			.single();
+
+		if (error) throw error;
+
+		return {
+			...story,
+			views_count: 0,
+			has_viewed: false,
+		};
+	} catch (error) {
+		console.error("Error creating story:", error);
+		throw error;
+	}
+}
+
+export async function viewStory(storyId: string): Promise<void> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Insert view record (ignore if already exists due to unique constraint)
+		await supabase
+			.from("story_views")
+			.insert({
+				story_id: storyId,
+				viewer_id: user.id,
+			})
+			.select()
+			.single();
+	} catch (error) {
+		// Ignore duplicate key errors (user already viewed this story)
+		if (!(error as any)?.message?.includes("duplicate key")) {
+			console.error("Error viewing story:", error);
+		}
+	}
+}
+
+export async function getStoryViews(storyId: string): Promise<StoryView[]> {
+	try {
+		const { data, error } = await supabase
+			.from("story_views")
+			.select(
+				`
+				*,
+				viewer:users!story_views_viewer_id_fkey(
+					id, username, full_name, avatar_url
+				)
+			`,
+			)
+			.eq("story_id", storyId)
+			.order("viewed_at", { ascending: false });
+
+		if (error) throw error;
+
+		return data || [];
+	} catch (error) {
+		console.error("Error fetching story views:", error);
+		throw error;
+	}
+}
+
+// Messages API
+export async function getConversations(): Promise<any[]> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Get latest message from each conversation
+		const { data: conversations, error } = await supabase
+			.from("messages")
+			.select(
+				`
+				*,
+				sender:users!messages_sender_id_fkey(
+					id, username, full_name, avatar_url
+				),
+				recipient:users!messages_recipient_id_fkey(
+					id, username, full_name, avatar_url
+				)
+			`,
+			)
+			.or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+			.order("created_at", { ascending: false });
+
+		if (error) throw error;
+
+		// Group by conversation partner and get latest message
+		const conversationMap = new Map();
+		
+		conversations?.forEach((message) => {
+			const partnerId = message.sender_id === user.id 
+				? message.recipient_id 
+				: message.sender_id;
+			
+			if (!conversationMap.has(partnerId)) {
+				conversationMap.set(partnerId, {
+					partner: message.sender_id === user.id 
+						? message.recipient 
+						: message.sender,
+					lastMessage: message,
+					unreadCount: 0,
+				});
+			}
+		});
+
+		// Calculate unread counts
+		for (const [partnerId, conversation] of conversationMap) {
+			const { count } = await supabase
+				.from("messages")
+				.select("*", { count: "exact" })
+				.eq("sender_id", partnerId)
+				.eq("recipient_id", user.id)
+				.eq("is_read", false);
+
+			conversation.unreadCount = count || 0;
+		}
+
+		return Array.from(conversationMap.values());
+	} catch (error) {
+		console.error("Error fetching conversations:", error);
+		throw error;
+	}
+}
+
+export async function getMessages(
+	partnerId: string,
+	cursor?: string,
+	limit = 50,
+): Promise<any> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		let query = supabase
+			.from("messages")
+			.select(
+				`
+				*,
+				sender:users!messages_sender_id_fkey(
+					id, username, full_name, avatar_url
+				),
+				post:posts(
+					id, caption, media:post_media(media_url, media_type)
+				)
+			`,
+			)
+			.or(
+				`and(sender_id.eq.${user.id},recipient_id.eq.${partnerId}),and(sender_id.eq.${partnerId},recipient_id.eq.${user.id})`,
+			)
+			.order("created_at", { ascending: false })
+			.limit(limit);
+
+		if (cursor) {
+			query = query.lt("created_at", cursor);
+		}
+
+		const { data: messages, error } = await query;
+
+		if (error) throw error;
+
+		return {
+			messages: messages?.reverse() || [],
+			hasMore: messages?.length === limit,
+			nextCursor: messages?.length === limit ? messages[0].created_at : undefined,
+		};
+	} catch (error) {
+		console.error("Error fetching messages:", error);
+		throw error;
+	}
+}
+
+export async function sendMessage(data: {
+	recipient_id: string;
+	content?: string;
+	message_type?: "text" | "post_share" | "media";
+	post_id?: string;
+	media_url?: string;
+}): Promise<any> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		const { data: message, error } = await supabase
+			.from("messages")
+			.insert({
+				sender_id: user.id,
+				recipient_id: data.recipient_id,
+				content: data.content,
+				message_type: data.message_type || "text",
+				post_id: data.post_id,
+				media_url: data.media_url,
+			})
+			.select(
+				`
+				*,
+				sender:users!messages_sender_id_fkey(
+					id, username, full_name, avatar_url
+				),
+				post:posts(
+					id, caption, media:post_media(media_url, media_type)
+				)
+			`,
+			)
+			.single();
+
+		if (error) throw error;
+
+		return message;
+	} catch (error) {
+		console.error("Error sending message:", error);
+		throw error;
+	}
+}
+
+export async function markMessagesAsRead(partnerId: string): Promise<void> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		const { error } = await supabase
+			.from("messages")
+			.update({ 
+				is_read: true, 
+				read_at: new Date().toISOString() 
+			})
+			.eq("sender_id", partnerId)
+			.eq("recipient_id", user.id)
+			.eq("is_read", false);
+
+		if (error) throw error;
+	} catch (error) {
+		console.error("Error marking messages as read:", error);
 		throw error;
 	}
 }

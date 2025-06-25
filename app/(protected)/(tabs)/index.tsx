@@ -1,21 +1,27 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Alert } from "react-native";
+import { View, Alert, Modal } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { PostList } from "@/components/feed/PostList";
 import { CommentModal } from "@/components/social/CommentModal";
-import { getFeed, likePost, unlikePost } from "@/lib/api";
-import { Post } from "@/lib/types";
+import { StoriesBar } from "@/components/stories/StoriesBar";
+import { StoryViewer } from "@/components/stories/StoryViewer";
+import { getFeed, likePost, unlikePost, getStories, getCurrentUser } from "@/lib/api";
+import { Post, Story, User } from "@/lib/types";
 
 export default function HomeScreen() {
 	const [posts, setPosts] = useState<Post[]>([]);
+	const [stories, setStories] = useState<Story[]>([]);
+	const [currentUser, setCurrentUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [refreshing, setRefreshing] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
 	const [nextCursor, setNextCursor] = useState<string | undefined>();
 	const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 	const [commentModalVisible, setCommentModalVisible] = useState(false);
+	const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+	const [storyViewerVisible, setStoryViewerVisible] = useState(false);
 
 	const loadFeed = useCallback(
 		async (refresh = false) => {
@@ -47,10 +53,29 @@ export default function HomeScreen() {
 		[nextCursor],
 	);
 
+	const loadStories = useCallback(async () => {
+		try {
+			const storiesData = await getStories();
+			setStories(storiesData);
+		} catch (error) {
+			console.error("Error loading stories:", error);
+		}
+	}, []);
+
+	const loadCurrentUser = useCallback(async () => {
+		try {
+			const user = await getCurrentUser();
+			setCurrentUser(user);
+		} catch (error) {
+			console.error("Error loading current user:", error);
+		}
+	}, []);
+
 	const handleRefresh = useCallback(() => {
 		setNextCursor(undefined);
 		loadFeed(true);
-	}, [loadFeed]);
+		loadStories();
+	}, [loadFeed, loadStories]);
 
 	const handleLoadMore = useCallback(() => {
 		if (hasMore && !loading) {
@@ -126,9 +151,45 @@ export default function HomeScreen() {
 		router.push(`/(protected)/user-profile?userId=${userId}`);
 	}, []);
 
+	const handleStoryPress = useCallback((story: Story) => {
+		// Find all stories from the same user
+		const userStories = stories.filter(s => s.user_id === story.user_id);
+		const initialIndex = userStories.findIndex(s => s.id === story.id);
+		
+		setSelectedStory(story);
+		setStoryViewerVisible(true);
+	}, [stories]);
+
+	const handleCreateStory = useCallback(() => {
+		router.push("/(protected)/(tabs)/create");
+	}, []);
+
+	const handleCloseStoryViewer = useCallback(() => {
+		setStoryViewerVisible(false);
+		setSelectedStory(null);
+		// Refresh stories to update view status
+		loadStories();
+	}, [loadStories]);
+
+	const handleStoryUserProfile = useCallback((userId: string) => {
+		setStoryViewerVisible(false);
+		setSelectedStory(null);
+		router.push(`/(protected)/user-profile?userId=${userId}`);
+	}, []);
+
 	useEffect(() => {
 		loadFeed(true);
+		loadStories();
+		loadCurrentUser();
 	}, []);
+
+	// Get all stories for the selected user when viewing
+	const selectedUserStories = selectedStory 
+		? stories.filter(s => s.user_id === selectedStory.user_id)
+		: [];
+	const initialStoryIndex = selectedStory 
+		? selectedUserStories.findIndex(s => s.id === selectedStory.id)
+		: 0;
 
 	return (
 		<SafeAreaView className="flex-1 bg-background">
@@ -137,6 +198,14 @@ export default function HomeScreen() {
 				<View className="px-4 py-3 border-b border-border">
 					<Text className="text-2xl font-bold">SnapConnect</Text>
 				</View>
+
+				{/* Stories Bar */}
+				<StoriesBar
+					stories={stories}
+					currentUser={currentUser}
+					onStoryPress={handleStoryPress}
+					onCreateStory={handleCreateStory}
+				/>
 
 				{/* Feed */}
 				<PostList
@@ -161,6 +230,22 @@ export default function HomeScreen() {
 						// Could refresh feed or update comment count
 					}}
 				/>
+
+				{/* Story Viewer Modal */}
+				<Modal
+					visible={storyViewerVisible}
+					animationType="fade"
+					presentationStyle="fullScreen"
+				>
+					{selectedStory && (
+						<StoryViewer
+							stories={selectedUserStories}
+							initialIndex={Math.max(0, initialStoryIndex)}
+							onClose={handleCloseStoryViewer}
+							onUserProfile={handleStoryUserProfile}
+						/>
+					)}
+				</Modal>
 			</View>
 		</SafeAreaView>
 	);
