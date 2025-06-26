@@ -3,9 +3,11 @@ Read file: docs/snapconnect/PRD/PHASE2-PRD-spikyPOVs-update.md
 
 Read file: docs/snapconnect/PRD/PHASE2-PRD-spikyPOVs-update.md
 
-## Assessment: Clear Path Forward with Minor Ambiguities
+## Assessment: Clear Path Forward with Strategic Simplifications
 
 The updated Phase 2 PRD provides **significantly improved clarity** for AI-driven development in Cursor. The key simplification from "dual-mode navigation" to "single-purpose event app" eliminates major architectural confusion and creates a much cleaner implementation path.
+
+**Strategic Decision**: Event joining complexity is being **deferred for PoC development** to focus on perfecting the in-event experience first with hardcoded event context.
 
 ## ✅ **Strengths - Ready for AI Development**
 
@@ -14,18 +16,19 @@ The **"Temporary Instagram Per Event"** concept is crystal clear:
 - Users join ONE event → entire app becomes event-scoped
 - Existing 5-tab navigation preserved but all content filtered by event
 - Modal-based detail screens instead of complex navigation hierarchies
+- **PoC Strategy**: Start with hardcoded event context, add joining flow later
 
-### 2. **Technical Specifications**
+### 2. **Complete Technical Specifications**
 - **Exact file paths** for 40+ new components/screens
-- **Complete database schema** with specific column additions
+- **Complete database schema** with all required tables fully specified in PRD
 - **Precise AI stack**: Pinecone/Supabase pgvector + OpenAI CLIP + GPT-4V
 - **Dependencies listed** with version numbers
 - **Integration points** clearly mapped to existing tabs
 
 ### 3. **Incremental Implementation**
 The 4-phase roadmap (2A → 2B → 2C → 2D) builds logically on the completed MVP:
-- **Phase 2A**: Event joining integration into existing tabs
-- **Phase 2B**: AI-powered quest system
+- **Phase 2A**: Dual feed system with event-scoped content (using hardcoded context)
+- **Phase 2B**: AI-powered quest system with location/photo verification
 - **Phase 2C**: Organizer B2B tools  
 - **Phase 2D**: Privacy controls and post-event features
 
@@ -34,94 +37,76 @@ The 4-phase roadmap (2A → 2B → 2C → 2D) builds logically on the completed 
 - Specific customer segments and revenue streams
 - Cost structure with caps to prevent surprise bills
 
-## ⚠️ **Minor Ambiguities to Address**
+## ✅ **Clarifications Resolved**
 
-### 1. **Event State Transition Logic**
+### 1. **Event State Management** → **Simplified for PoC**
+- Start with hardcoded `DEMO_EVENT_CONTEXT` 
+- All features assume user is already in event
+- Event joining/switching deferred to post-PoC
+
+### 2. **Database Schema** → **Complete and Ready**
+- All required tables fully specified in PRD
+- Clear migration path from existing Phase 1 tables
+- No ambiguity about data model
+
+### 3. **Implementation Order** → **De-risked**
+- Core event experience first (weeks 1-4)
+- AI enhancement layer last (week 5)
+- Each week builds incrementally on previous
+
+## 🚀 **Ready for Immediate Implementation**
+
+### 1. **Start with Dual Feed System** (Week 1)
+With hardcoded event context, can immediately begin:
 ```typescript
-// Not fully specified: How does app transition between states?
-type AppState = 'onboarding' | 'event-joined' | 'post-event'
+// Week 1 focus - no event joining needed
+- Enhanced app/(protected)/(tabs)/index.tsx with event feed
+- components/feed/FeedToggle.tsx (Following/Discovery)
+- Event-scoped content filtering
+- Basic algorithmic Discovery feed
 ```
-**Question**: What's the exact user flow when someone first downloads the app vs. joins an event?
 
-### 2. **Content Migration Strategy**
-The PRD states "No backwards compatibility needed" but doesn't specify:
-- What happens to existing posts/stories during the pivot?
-- How do current users transition to the event-scoped model?
-- Is there a migration period or hard cutover?
-
-### 3. **Multi-Event Enforcement**
-While "single event per user" is stated, the technical enforcement isn't detailed:
+### 2. **Database Setup** (Prerequisites)
 ```sql
--- How is this constraint enforced?
--- Can users leave one event and join another?
--- What happens to their content when switching?
+-- Deploy complete schema from PRD
+- events, event_participants, quests, quest_completions
+- ALTER TABLE posts ADD COLUMN event_id UUID...
+- ALTER TABLE stories ADD COLUMN event_id UUID...
 ```
 
-### 4. **AI Implementation Specifics**
-The AI stack is specified but could benefit from more details:
-- **Vector embedding dimensions** for CLIP
-- **RAG retrieval parameters** (top-k, similarity thresholds)
-- **GPT-4V prompt engineering** for quest verification
-- **Embedding update frequency** for real-time discovery
-
-### 5. **Privacy Controls Implementation**
-Some privacy features need technical clarification:
-- **"Moderate GPS accuracy ±100m"** - what's the exact geofencing algorithm?
-- **Geofenced content visibility** - client-side or server-side filtering?
-- **Content expiration** - how are deletion timers implemented?
-
-## 🚀 **Recommended Next Steps**
-
-### 1. **Start with Phase 2A Foundation** (Immediate)
-The PRD provides enough clarity to begin:
-```bash
-# These components are fully specified and ready to implement:
-- app/(protected)/event-join.tsx
-- components/events/EventCard.tsx  
-- Enhanced app/(protected)/(tabs)/search.tsx with event discovery
-- Database schema extensions (events, event_participants tables)
-```
-
-### 2. **Clarify State Management** (Week 1)
-Define the app state transition logic:
-```typescript
-// Context for event state management
-interface EventContextType {
-  currentEvent: Event | null
-  joinEvent: (eventCode: string) => Promise<void>
-  leaveEvent: () => Promise<void>
-  appState: 'onboarding' | 'in-event' | 'post-event'
-}
-```
-
-### 3. **Specify AI Integration Details** (Week 2)
-Before implementing Phase 2B, clarify:
+### 3. **AI Integration Details** (Week 5)
+Clear specifications for later implementation:
 - OpenAI API integration patterns
-- Vector database schema and indexing strategy
+- Vector database setup with Pinecone/pgvector
 - RAG query optimization for real-time performance
 
-## 📊 **Implementation Confidence Level: 85%**
+## 📊 **Updated Implementation Confidence Level: 95%**
 
 **High Confidence Areas (Ready Now):**
-- Event discovery and joining (Phase 2A)
-- Database schema extensions
-- Navigation integration within existing tabs
-- Basic quest system structure
+- ✅ Database schema extensions (fully specified)
+- ✅ Dual feed system implementation
+- ✅ Quest system structure and UI components
+- ✅ Basic gamification and leaderboards
+- ✅ Navigation integration within existing tabs
 
-**Medium Confidence Areas (Need Minor Clarification):**
+**Medium Confidence Areas (Week 5):**
 - AI verification pipeline implementation
-- Privacy control enforcement mechanisms
-- Content migration strategy
+- RAG-based content discovery
+- Vector embedding optimization
 
-**Lower Confidence Areas (Require Detailed Specs):**
-- Real-time AI-powered discovery algorithms
-- Organizer dashboard analytics implementation
-- Post-event memory preservation features
+**Deferred Areas (Post-PoC):**
+- Event discovery and joining flows
+- Multi-event user management
+- Advanced organizer analytics
 
 ## **Conclusion**
 
-This updated PRD provides a **clear and actionable path forward** for AI-driven development. The architectural simplification eliminates the major confusion from the previous version, and the specific file paths and technical details make it ready for immediate implementation.
+This updated PRD with strategic simplifications provides a **clear, de-risked path forward** for AI-driven development. The decision to defer event joining complexity and start with hardcoded event context eliminates the major implementation ambiguities.
 
-The remaining ambiguities are **minor implementation details** rather than fundamental architectural questions. You can confidently begin development with Phase 2A while clarifying the remaining details in parallel.
+**Key Success Factors:**
+1. **Complete database schema** removes data modeling uncertainty
+2. **Hardcoded event context** eliminates state management complexity
+3. **Incremental AI integration** prevents getting stuck on ML complexity
+4. **Clear file structure** provides exact implementation targets
 
-**Recommendation**: Start implementing the event foundation (Phase 2A) immediately - the PRD provides sufficient clarity for the first 2-3 weeks of development.
+**Recommendation**: Start implementing the dual feed system (Week 1) immediately - all architectural foundations are solid and ready for development.
