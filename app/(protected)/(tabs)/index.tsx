@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Alert, Modal, TextInput } from "react-native";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { PostList } from "@/components/feed/PostList";
@@ -91,6 +92,13 @@ export default function HomeScreen() {
 		loadStories();
 		loadCurrentUser();
 	}, []);
+
+	// Refresh stories when screen comes into focus (e.g., after creating a story)
+	useFocusEffect(
+		useCallback(() => {
+			loadStories();
+		}, [])
+	);
 
 	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);

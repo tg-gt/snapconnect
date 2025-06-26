@@ -79,7 +79,113 @@ export async function getFeed(
 	}
 }
 
-// Simplified post creation (without file upload for now)
+// Media upload utility
+export async function uploadMedia(
+	uri: string,
+	mediaType: "photo" | "video",
+	folder: "posts" | "stories" = "posts"
+): Promise<string> {
+	try {
+		console.log("🔧 uploadMedia called with:", { uri, mediaType, folder });
+		
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Create a unique filename with proper extension
+		let fileExt: string;
+		if (uri.startsWith('data:')) {
+			// For data URLs, extract extension from MIME type
+			const mimeMatch = uri.match(/data:([^;]+)/);
+			if (mimeMatch) {
+				const mimeType = mimeMatch[1];
+				if (mimeType.includes('video')) {
+					fileExt = 'mp4';
+				} else if (mimeType.includes('png')) {
+					fileExt = 'png';
+				} else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
+					fileExt = 'jpg';
+				} else {
+					fileExt = mediaType === "video" ? "mp4" : "jpg";
+				}
+			} else {
+				fileExt = mediaType === "video" ? "mp4" : "jpg";
+			}
+		} else {
+			// For regular URLs, try to extract extension
+			fileExt = uri.split('.').pop()?.split('?')[0] || (mediaType === "video" ? "mp4" : "jpg");
+		}
+		
+		const fileName = `${folder}/${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+		console.log("📁 Generated filename:", fileName);
+
+		let fileData: ArrayBuffer;
+		
+		// Handle different URI types (blob URLs, data URLs, file paths)
+		console.log("📋 URI type detection:", {
+			isDataURL: uri.startsWith('data:'),
+			isBlobURL: uri.startsWith('blob:'),
+			isFileURL: uri.startsWith('file:'),
+			uriStart: uri.substring(0, 50)
+		});
+		
+		if (uri.startsWith('data:')) {
+			console.log("📊 Processing data URL...");
+			const response = await fetch(uri);
+			fileData = await response.arrayBuffer();
+		} else if (uri.startsWith('blob:')) {
+			console.log("🔵 Processing blob URL...");
+			const response = await fetch(uri);
+			fileData = await response.arrayBuffer();
+		} else {
+			console.log("🔍 Attempting to fetch URI...");
+			try {
+				const response = await fetch(uri);
+				if (!response.ok) {
+					throw new Error(`Fetch failed with status: ${response.status}`);
+				}
+				fileData = await response.arrayBuffer();
+				console.log("✅ Successfully fetched URI");
+			} catch (fetchError) {
+				console.error("❌ Failed to fetch URI:", fetchError);
+				const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+				throw new Error(`Cannot fetch media from URI: ${uri.substring(0, 100)}... (${errorMessage})`);
+			}
+		}
+		
+		console.log(`📦 File data size: ${fileData.byteLength} bytes`);
+		
+		// Upload to Supabase Storage
+		console.log("☁️ Uploading to Supabase Storage...");
+		const { data, error } = await supabase.storage
+			.from("media")
+			.upload(fileName, fileData, {
+				contentType: mediaType === "video" ? "video/mp4" : "image/jpeg",
+				upsert: false,
+			});
+
+		if (error) {
+			console.error("❌ Storage upload error:", error);
+			throw error;
+		}
+
+		console.log("✅ Upload successful:", data);
+
+		// Get public URL
+		const { data: publicUrlData } = supabase.storage
+			.from("media")
+			.getPublicUrl(data.path);
+
+		console.log("🔗 Generated public URL:", publicUrlData.publicUrl);
+		return publicUrlData.publicUrl;
+	} catch (error) {
+		console.error("💥 Error uploading media:", error);
+		throw error;
+	}
+}
+
+// Updated post creation with proper file upload
 export async function createPost(postData: CreatePostData): Promise<Post> {
 	try {
 		const {
@@ -100,15 +206,19 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
 
 		if (postError) throw postError;
 
-		// Create media records (using URIs directly for now)
+		// Upload media files and create media records
 		const mediaRecords = [];
 		for (let i = 0; i < postData.media.length; i++) {
 			const media = postData.media[i];
+			
+			// Upload to Supabase Storage
+			const mediaUrl = await uploadMedia(media.uri, media.type, "posts");
+			
 			const { data: mediaRecord, error: mediaError } = await supabase
 				.from("post_media")
 				.insert({
 					post_id: post.id,
-					media_url: media.uri, // Using URI directly for now
+					media_url: mediaUrl, // Now using uploaded URL
 					media_type: media.type,
 					order_index: i,
 				})
@@ -764,11 +874,14 @@ export async function createStory(storyData: {
 		} = await supabase.auth.getUser();
 		if (!user) throw new Error("User not authenticated");
 
+		// Upload media to Supabase Storage
+		const uploadedMediaUrl = await uploadMedia(storyData.media_url, storyData.media_type, "stories");
+
 		const { data: story, error } = await supabase
 			.from("stories")
 			.insert({
 				user_id: user.id,
-				media_url: storyData.media_url,
+				media_url: uploadedMediaUrl, // Now using uploaded URL
 				media_type: storyData.media_type,
 				caption: storyData.caption,
 			})
