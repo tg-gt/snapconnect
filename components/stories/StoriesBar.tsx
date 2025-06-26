@@ -79,35 +79,85 @@ export function StoriesBar({
 				{/* Current user's story or create story */}
 				{currentUser && (
 					<TouchableOpacity
-						onPress={onCreateStory}
+						onPress={() => {
+							// If user has stories, show the first one, otherwise create new
+							const currentUserStories = userStoriesList.find(us => us.user.id === currentUser.id);
+							if (currentUserStories) {
+								onStoryPress(currentUserStories.stories[0]);
+							} else {
+								onCreateStory();
+							}
+						}}
 						className="items-center mr-4"
 						style={{ width: 70 }}
 					>
 						<View className="relative">
-							<View className="w-16 h-16 rounded-full bg-muted items-center justify-center">
-								{currentUser.avatar_url ? (
-									<Image
-										source={{ uri: currentUser.avatar_url }}
-										style={{ width: 64, height: 64, borderRadius: 32 }}
-									/>
-								) : (
-									<Ionicons
-										name="person"
-										size={24}
-										color={
-											colorScheme === "dark"
-												? colors.dark.mutedForeground
-												: colors.light.mutedForeground
-										}
-									/>
-								)}
-							</View>
-							<View className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full items-center justify-center border-2 border-background">
-								<Ionicons name="add" size={14} color="white" />
-							</View>
+							{(() => {
+								const currentUserStories = userStoriesList.find(us => us.user.id === currentUser.id);
+								if (currentUserStories) {
+									// Show story ring if user has stories
+									return (
+										<View
+											className={`w-16 h-16 rounded-full p-0.5 ${
+												currentUserStories.hasUnviewed
+													? "bg-gradient-to-r from-purple-500 to-pink-500"
+													: "bg-muted-foreground"
+											}`}
+										>
+											<View className="w-full h-full rounded-full bg-background p-0.5">
+												{currentUser.avatar_url ? (
+													<Image
+														source={{ uri: currentUser.avatar_url }}
+														style={{ width: "100%", height: "100%", borderRadius: 32 }}
+													/>
+												) : (
+													<View className="w-full h-full rounded-full bg-muted items-center justify-center">
+														<Ionicons
+															name="person"
+															size={24}
+															color={
+																colorScheme === "dark"
+																	? colors.dark.mutedForeground
+																	: colors.light.mutedForeground
+															}
+														/>
+													</View>
+												)}
+											</View>
+										</View>
+									);
+								} else {
+									// Show create story button if no stories
+									return (
+										<>
+											<View className="w-16 h-16 rounded-full bg-muted items-center justify-center">
+												{currentUser.avatar_url ? (
+													<Image
+														source={{ uri: currentUser.avatar_url }}
+														style={{ width: 64, height: 64, borderRadius: 32 }}
+													/>
+												) : (
+													<Ionicons
+														name="person"
+														size={24}
+														color={
+															colorScheme === "dark"
+																? colors.dark.mutedForeground
+																: colors.light.mutedForeground
+														}
+													/>
+												)}
+											</View>
+											<View className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full items-center justify-center border-2 border-background">
+												<Ionicons name="add" size={14} color="white" />
+											</View>
+										</>
+									);
+								}
+							})()}
 						</View>
 						<Text className="text-xs mt-1 text-center" numberOfLines={1}>
-							Your story
+							{userStoriesList.find(us => us.user.id === currentUser.id) ? "Your story" : "Your story"}
 						</Text>
 					</TouchableOpacity>
 				)}
