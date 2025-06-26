@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -7,7 +7,8 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { PostGrid } from "@/components/profile/PostGrid";
 import { PostDetailModal } from "@/components/social/PostDetailModal";
 import { CommentModal } from "@/components/social/CommentModal";
-import { getCurrentUser, getUserProfile, likePost, unlikePost } from "@/lib/api";
+import { PostMenuModal } from "@/components/social/PostMenuModal";
+import { getCurrentUser, getUserProfile, likePost, unlikePost, deletePost } from "@/lib/api";
 import { User, Post } from "@/lib/types";
 
 export default function ProfileScreen() {
@@ -18,6 +19,8 @@ export default function ProfileScreen() {
 	const [postDetailVisible, setPostDetailVisible] = useState(false);
 	const [commentModalVisible, setCommentModalVisible] = useState(false);
 	const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+	const [menuModalVisible, setMenuModalVisible] = useState(false);
+	const [selectedMenuPost, setSelectedMenuPost] = useState<Post | null>(null);
 
 	const loadProfile = async () => {
 		try {
@@ -141,6 +144,34 @@ export default function ProfileScreen() {
 		router.push(`/(protected)/user-profile?userId=${userId}`);
 	};
 
+	const handleMenu = (post: Post) => {
+		setSelectedMenuPost(post);
+		setMenuModalVisible(true);
+	};
+
+	const handleCloseMenu = () => {
+		setMenuModalVisible(false);
+		setSelectedMenuPost(null);
+	};
+
+	const handleMenuDelete = async (postId: string) => {
+		try {
+			await deletePost(postId);
+			// Remove from local state
+			setPosts(prev => prev.filter(p => p.id !== postId));
+			Alert.alert("Success", "Your post has been deleted.");
+		} catch (error) {
+			console.error("Error deleting post:", error);
+			Alert.alert("Error", "Failed to delete post. Please try again.");
+		}
+	};
+
+	const handleMenuEdit = (postId: string) => {
+		// TODO: Implement edit functionality
+		console.log("Edit post:", postId);
+		Alert.alert("Edit Post", "Edit functionality coming soon!");
+	};
+
 	if (loading) {
 		return (
 			<SafeAreaView className="flex-1 bg-background">
@@ -182,6 +213,17 @@ export default function ProfileScreen() {
 				onComment={handleComment}
 				onShare={handleShare}
 				onProfilePress={handleProfilePress}
+				onMenu={handleMenu}
+			/>
+
+			{/* Post Menu Modal */}
+			<PostMenuModal
+				visible={menuModalVisible}
+				onClose={handleCloseMenu}
+				post={selectedMenuPost}
+				isOwnPost={true} // All posts on profile page are user's own posts
+				onDelete={handleMenuDelete}
+				onEdit={handleMenuEdit}
 			/>
 
 			{/* Comment Modal */}

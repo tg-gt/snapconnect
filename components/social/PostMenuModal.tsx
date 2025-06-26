@@ -16,7 +16,6 @@ interface PostMenuModalProps {
 	onClose: () => void;
 	post: Post | null;
 	isOwnPost: boolean;
-	onShare?: (postId: string) => void;
 	onReport?: (postId: string) => void;
 	onDelete?: (postId: string) => void;
 	onEdit?: (postId: string) => void;
@@ -27,7 +26,6 @@ export function PostMenuModal({
 	onClose,
 	post,
 	isOwnPost,
-	onShare,
 	onReport,
 	onDelete,
 	onEdit,
@@ -35,11 +33,6 @@ export function PostMenuModal({
 	const { colorScheme } = useColorScheme();
 
 	if (!post) return null;
-
-	const handleShare = () => {
-		onClose();
-		onShare?.(post.id);
-	};
 
 	const handleReport = () => {
 		onClose();
@@ -78,12 +71,6 @@ export function PostMenuModal({
 		onEdit?.(post.id);
 	};
 
-	const handleCopyLink = () => {
-		onClose();
-		// TODO: Implement copy link functionality
-		Alert.alert("Link Copied", "Post link copied to clipboard");
-	};
-
 	return (
 		<Modal
 			visible={visible}
@@ -101,42 +88,6 @@ export function PostMenuModal({
 						colorScheme === "dark" ? "bg-gray-800" : "bg-white"
 					}`}
 				>
-					{/* Share */}
-					<TouchableOpacity
-						onPress={handleShare}
-						className="flex-row items-center px-6 py-4 border-b border-border"
-					>
-						<Ionicons
-							name="share-outline"
-							size={24}
-							color={
-								colorScheme === "dark"
-									? colors.dark.foreground
-									: colors.light.foreground
-							}
-							style={{ marginRight: 16 }}
-						/>
-						<Text className="text-lg">Share</Text>
-					</TouchableOpacity>
-
-					{/* Copy Link */}
-					<TouchableOpacity
-						onPress={handleCopyLink}
-						className="flex-row items-center px-6 py-4 border-b border-border"
-					>
-						<Ionicons
-							name="link-outline"
-							size={24}
-							color={
-								colorScheme === "dark"
-									? colors.dark.foreground
-									: colors.light.foreground
-							}
-							style={{ marginRight: 16 }}
-						/>
-						<Text className="text-lg">Copy Link</Text>
-					</TouchableOpacity>
-
 					{isOwnPost ? (
 						<>
 							{/* Edit */}

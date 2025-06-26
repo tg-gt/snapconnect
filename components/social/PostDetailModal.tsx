@@ -21,6 +21,7 @@ interface PostDetailModalProps {
 	onComment?: (postId: string) => void;
 	onShare?: (postId: string) => void;
 	onProfilePress?: (userId: string) => void;
+	onMenu?: (post: Post) => void;
 }
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -33,6 +34,7 @@ export function PostDetailModal({
 	onComment,
 	onShare,
 	onProfilePress,
+	onMenu,
 }: PostDetailModalProps) {
 	const { colorScheme } = useColorScheme();
 	const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
@@ -53,6 +55,12 @@ export function PostDetailModal({
 
 	const handleProfilePress = () => {
 		onProfilePress?.(post.user_id);
+	};
+
+	const handleMenu = () => {
+		if (post) {
+			onMenu?.(post);
+		}
 	};
 
 	const formatTimeAgo = (dateString: string) => {
@@ -93,7 +101,17 @@ export function PostDetailModal({
 						/>
 					</TouchableOpacity>
 					<Text className="text-lg font-semibold">Post</Text>
-					<View style={{ width: 24 }} />
+					<TouchableOpacity onPress={handleMenu}>
+						<Ionicons
+							name="ellipsis-horizontal"
+							size={24}
+							color={
+								colorScheme === "dark"
+									? colors.dark.foreground
+									: colors.light.foreground
+							}
+						/>
+					</TouchableOpacity>
 				</View>
 
 				<ScrollView className="flex-1">
@@ -248,4 +266,4 @@ export function PostDetailModal({
 			</View>
 		</Modal>
 	);
-} 
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Alert, Modal } from "react-native";
+import { View, Alert, Modal, TextInput } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -8,8 +8,12 @@ import { CommentModal } from "@/components/social/CommentModal";
 import { PostMenuModal } from "@/components/social/PostMenuModal";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { StoryViewer } from "@/components/stories/StoryViewer";
-import { getFeed, likePost, unlikePost, getStories, getCurrentUser } from "@/lib/api";
+import { getFeed, likePost, unlikePost, getStories, getCurrentUser, deletePost, updatePost } from "@/lib/api";
 import { Post, Story, User } from "@/lib/types";
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
 
 export default function HomeScreen() {
 	const [posts, setPosts] = useState<Post[]>([]);
@@ -25,6 +29,15 @@ export default function HomeScreen() {
 	const [selectedMenuPost, setSelectedMenuPost] = useState<Post | null>(null);
 	const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 	const [storyViewerVisible, setStoryViewerVisible] = useState(false);
+	
+	// Edit modal state
+	const [editModalVisible, setEditModalVisible] = useState(false);
+	const [editingPost, setEditingPost] = useState<Post | null>(null);
+	const [editCaption, setEditCaption] = useState("");
+	const [editLocation, setEditLocation] = useState("");
+	const [editLoading, setEditLoading] = useState(false);
+
+	const { colorScheme } = useColorScheme();
 
 	// Calculate story-related variables
 	const selectedUserStories = selectedStory
@@ -173,28 +186,66 @@ export default function HomeScreen() {
 		setSelectedMenuPost(null);
 	}, []);
 
-	const handleMenuShare = useCallback((postId: string) => {
-		handleShare(postId);
-	}, [handleShare]);
-
 	const handleMenuReport = useCallback((postId: string) => {
 		// TODO: Implement report functionality
 		console.log("Report post:", postId);
 		Alert.alert("Post Reported", "Thank you for your report. We'll review this post.");
 	}, []);
 
-	const handleMenuDelete = useCallback((postId: string) => {
-		// TODO: Implement delete functionality
-		console.log("Delete post:", postId);
-		// Remove from local state for now
-		setPosts(prev => prev.filter(p => p.id !== postId));
-		Alert.alert("Post Deleted", "Your post has been deleted.");
+	const handleMenuDelete = useCallback(async (postId: string) => {
+		try {
+			await deletePost(postId);
+			// Remove from local state
+			setPosts(prev => prev.filter(p => p.id !== postId));
+			Alert.alert("Success", "Your post has been deleted.");
+		} catch (error) {
+			console.error("Error deleting post:", error);
+			Alert.alert("Error", "Failed to delete post. Please try again.");
+		}
 	}, []);
 
 	const handleMenuEdit = useCallback((postId: string) => {
-		// TODO: Implement edit functionality
-		console.log("Edit post:", postId);
-		Alert.alert("Edit Post", "Edit functionality coming soon!");
+		const post = posts.find(p => p.id === postId);
+		if (post) {
+			setEditingPost(post);
+			setEditCaption(post.caption || "");
+			setEditLocation(post.location || "");
+			setEditModalVisible(true);
+		}
+	}, [posts]);
+
+	const handleSaveEdit = useCallback(async () => {
+		if (!editingPost) return;
+
+		try {
+			setEditLoading(true);
+			const updatedPost = await updatePost(editingPost.id, {
+				caption: editCaption.trim() || undefined,
+				location: editLocation.trim() || undefined,
+			});
+
+			// Update local state
+			setPosts(prev => prev.map(p => p.id === editingPost.id ? updatedPost : p));
+			
+			setEditModalVisible(false);
+			setEditingPost(null);
+			setEditCaption("");
+			setEditLocation("");
+			
+			Alert.alert("Success", "Your post has been updated.");
+		} catch (error) {
+			console.error("Error updating post:", error);
+			Alert.alert("Error", "Failed to update post. Please try again.");
+		} finally {
+			setEditLoading(false);
+		}
+	}, [editingPost, editCaption, editLocation]);
+
+	const handleCancelEdit = useCallback(() => {
+		setEditModalVisible(false);
+		setEditingPost(null);
+		setEditCaption("");
+		setEditLocation("");
 	}, []);
 
 	const handleStoryPress = useCallback((story: Story) => {
@@ -267,11 +318,72 @@ export default function HomeScreen() {
 					onClose={handleCloseMenu}
 					post={selectedMenuPost}
 					isOwnPost={selectedMenuPost?.user_id === currentUser?.id}
-					onShare={handleMenuShare}
 					onReport={handleMenuReport}
 					onDelete={handleMenuDelete}
 					onEdit={handleMenuEdit}
 				/>
+
+				{/* Edit Post Modal */}
+				<Modal
+					visible={editModalVisible}
+					animationType="slide"
+					presentationStyle="pageSheet"
+				>
+					<View className={`flex-1 ${colorScheme === "dark" ? "bg-black" : "bg-white"}`}>
+						{/* Header */}
+						<View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+							<TouchableOpacity onPress={handleCancelEdit}>
+								<Text className="text-lg">Cancel</Text>
+							</TouchableOpacity>
+							<Text className="text-lg font-semibold">Edit Post</Text>
+							<TouchableOpacity onPress={handleSaveEdit} disabled={editLoading}>
+								<Text className={`text-lg font-semibold ${editLoading ? "text-muted-foreground" : "text-blue-500"}`}>
+									{editLoading ? "Saving..." : "Save"}
+								</Text>
+							</TouchableOpacity>
+						</View>
+
+						<View className="flex-1 p-4">
+							{/* Caption */}
+							<View className="mb-6">
+								<Text className="text-sm font-medium mb-2">Caption</Text>
+								<TextInput
+									value={editCaption}
+									onChangeText={setEditCaption}
+									placeholder="Write a caption..."
+									placeholderTextColor={
+										colorScheme === "dark"
+											? colors.dark.mutedForeground
+											: colors.light.mutedForeground
+									}
+									className={`p-3 rounded-lg border border-border min-h-[100px] ${
+										colorScheme === "dark" ? "text-white" : "text-black"
+									}`}
+									multiline
+									textAlignVertical="top"
+								/>
+							</View>
+
+							{/* Location */}
+							<View className="mb-6">
+								<Text className="text-sm font-medium mb-2">Location</Text>
+								<TextInput
+									value={editLocation}
+									onChangeText={setEditLocation}
+									placeholder="Add location..."
+									placeholderTextColor={
+										colorScheme === "dark"
+											? colors.dark.mutedForeground
+											: colors.light.mutedForeground
+									}
+									className={`p-3 rounded-lg border border-border ${
+										colorScheme === "dark" ? "text-white" : "text-black"
+									}`}
+								/>
+							</View>
+						</View>
+					</View>
+				</Modal>
 
 				{/* Story Viewer Modal */}
 				<Modal

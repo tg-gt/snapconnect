@@ -129,6 +129,84 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
 	}
 }
 
+export async function deletePost(postId: string): Promise<void> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// First check if the user owns this post
+		const { data: post, error: fetchError } = await supabase
+			.from("posts")
+			.select("user_id")
+			.eq("id", postId)
+			.single();
+
+		if (fetchError) throw fetchError;
+		if (post.user_id !== user.id) {
+			throw new Error("You can only delete your own posts");
+		}
+
+		// Delete the post (this will cascade to delete related media, likes, comments due to foreign key constraints)
+		const { error } = await supabase
+			.from("posts")
+			.delete()
+			.eq("id", postId);
+
+		if (error) throw error;
+	} catch (error) {
+		console.error("Error deleting post:", error);
+		throw error;
+	}
+}
+
+export async function updatePost(postId: string, updates: { caption?: string; location?: string }): Promise<Post> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// First check if the user owns this post
+		const { data: post, error: fetchError } = await supabase
+			.from("posts")
+			.select("user_id")
+			.eq("id", postId)
+			.single();
+
+		if (fetchError) throw fetchError;
+		if (post.user_id !== user.id) {
+			throw new Error("You can only edit your own posts");
+		}
+
+		// Update the post
+		const { data: updatedPost, error } = await supabase
+			.from("posts")
+			.update({
+				caption: updates.caption,
+				location: updates.location,
+				updated_at: new Date().toISOString(),
+			})
+			.eq("id", postId)
+			.select(`
+				*,
+				user:users!posts_user_id_fkey(
+					id, username, full_name, avatar_url
+				),
+				media:post_media(*)
+			`)
+			.single();
+
+		if (error) throw error;
+
+		return updatedPost;
+	} catch (error) {
+		console.error("Error updating post:", error);
+		throw error;
+	}
+}
+
 export async function likePost(postId: string): Promise<void> {
 	try {
 		const {
