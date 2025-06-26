@@ -9,7 +9,7 @@ import {
 	Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
+import { ResizeMode, Video } from "expo-av";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Story } from "@/lib/types";
 import { viewStory } from "@/lib/api";
@@ -34,7 +34,6 @@ export function StoryViewer({
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const [progress, setProgress] = useState(0);
 	const [isPaused, setIsPaused] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
 	const progressAnimation = useRef(new Animated.Value(0)).current;
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { colorScheme } = useColorScheme();
@@ -64,7 +63,7 @@ export function StoryViewer({
 			clearTimeout(timerRef.current);
 		}
 
-		if (isPaused || isLoading) return;
+		if (isPaused) return;
 
 		progressAnimation.setValue(0);
 		setProgress(0);
@@ -80,7 +79,7 @@ export function StoryViewer({
 		// Update progress state for UI
 		const startTime = Date.now();
 		const updateProgress = () => {
-			if (isPaused || isLoading) return;
+			if (isPaused) return;
 			
 			const elapsed = Date.now() - startTime;
 			const newProgress = Math.min(elapsed / storyDuration, 1);
@@ -96,7 +95,6 @@ export function StoryViewer({
 	const nextStory = () => {
 		if (currentIndex < stories.length - 1) {
 			setCurrentIndex(currentIndex + 1);
-			setIsLoading(true);
 		} else {
 			onClose();
 		}
@@ -105,7 +103,6 @@ export function StoryViewer({
 	const prevStory = () => {
 		if (currentIndex > 0) {
 			setCurrentIndex(currentIndex - 1);
-			setIsLoading(true);
 		}
 	};
 
@@ -122,19 +119,7 @@ export function StoryViewer({
 		}
 	};
 
-	const handleLoadStart = () => {
-		setIsLoading(true);
-	};
 
-	const handleLoad = () => {
-		setIsLoading(false);
-	};
-
-	const handleVideoStatus = (status: AVPlaybackStatus) => {
-		if (status.isLoaded && !isLoading) {
-			setIsLoading(false);
-		}
-	};
 
 	if (!currentStory) return null;
 
@@ -225,29 +210,17 @@ export function StoryViewer({
 							shouldPlay={!isPaused}
 							isLooping={false}
 							resizeMode={ResizeMode.CONTAIN}
-							onLoadStart={handleLoadStart}
-							onLoad={handleLoad}
-							onPlaybackStatusUpdate={handleVideoStatus}
 						/>
 					) : (
 						<Image
 							source={{ uri: currentStory.media_url }}
 							style={styles.media}
-							onLoadStart={handleLoadStart}
-							onLoad={handleLoad}
 							resizeMode="contain"
 						/>
 					)}
 
-					{/* Loading overlay */}
-					{isLoading && (
-						<View style={styles.loadingOverlay}>
-							<Ionicons name="refresh" size={24} color="white" />
-						</View>
-					)}
-
 					{/* Pause indicator */}
-					{isPaused && !isLoading && (
+					{isPaused && (
 						<View style={styles.pauseOverlay}>
 							<Ionicons name="pause" size={48} color="white" />
 						</View>
@@ -393,16 +366,6 @@ const styles = StyleSheet.create({
 	media: {
 		width: screenWidth,
 		height: screenHeight * 0.7,
-	},
-	loadingOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(0,0,0,0.3)",
 	},
 	pauseOverlay: {
 		position: "absolute",
