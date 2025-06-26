@@ -209,6 +209,7 @@ export default function ProfileScreen() {
 				<ProfileHeader
 					user={user}
 					isCurrentUser={true}
+					postsCount={posts.length}
 					onEditPress={handleEditProfile}
 					onSettingsPress={handleSettings}
 				/>

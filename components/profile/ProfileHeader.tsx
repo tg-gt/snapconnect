@@ -12,6 +12,7 @@ interface ProfileHeaderProps {
 	user: User;
 	isCurrentUser?: boolean;
 	isFollowing?: boolean;
+	postsCount?: number;
 	onFollowPress?: () => void;
 	onEditPress?: () => void;
 	onSettingsPress?: () => void;
@@ -21,6 +22,7 @@ export function ProfileHeader({
 	user,
 	isCurrentUser = false,
 	isFollowing = false,
+	postsCount,
 	onFollowPress,
 	onEditPress,
 	onSettingsPress,
@@ -54,7 +56,7 @@ export function ProfileHeader({
 				{/* Stats */}
 				<View className="flex-1 flex-row justify-around">
 					<View className="items-center">
-						<Text className="font-bold text-lg">{user.posts_count}</Text>
+						<Text className="font-bold text-lg">{postsCount ?? user.posts_count}</Text>
 						<Text className="text-muted-foreground text-sm">Posts</Text>
 					</View>
 					<TouchableOpacity className="items-center">
