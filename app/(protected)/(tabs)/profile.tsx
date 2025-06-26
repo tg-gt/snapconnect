@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { PostGrid } from "@/components/profile/PostGrid";
-import { getCurrentUser, getUserProfile } from "@/lib/api";
+import { PostDetailModal } from "@/components/social/PostDetailModal";
+import { CommentModal } from "@/components/social/CommentModal";
+import { getCurrentUser, getUserProfile, likePost, unlikePost } from "@/lib/api";
 import { User, Post } from "@/lib/types";
 
 export default function ProfileScreen() {
 	const [user, setUser] = useState<User | null>(null);
 	const [posts, setPosts] = useState<Post[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+	const [postDetailVisible, setPostDetailVisible] = useState(false);
+	const [commentModalVisible, setCommentModalVisible] = useState(false);
+	const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
 	const loadProfile = async () => {
 		try {
@@ -42,8 +49,96 @@ export default function ProfileScreen() {
 	};
 
 	const handlePostPress = (post: Post) => {
-		// TODO: Navigate to post details
-		console.log("Navigate to post:", post.id);
+		setSelectedPost(post);
+		setPostDetailVisible(true);
+	};
+
+	const handleClosePostDetail = () => {
+		setPostDetailVisible(false);
+		setSelectedPost(null);
+	};
+
+	const handleLike = async (postId: string) => {
+		try {
+			// Optimistically update UI
+			setPosts((prev) =>
+				prev.map((post) =>
+					post.id === postId
+						? {
+								...post,
+								is_liked: !post.is_liked,
+								likes_count: post.is_liked
+									? post.likes_count - 1
+									: post.likes_count + 1,
+							}
+						: post,
+				),
+			);
+
+			// Update selected post if it's the same one
+			if (selectedPost?.id === postId) {
+				setSelectedPost((prev) =>
+					prev
+						? {
+								...prev,
+								is_liked: !prev.is_liked,
+								likes_count: prev.is_liked
+									? prev.likes_count - 1
+									: prev.likes_count + 1,
+							}
+						: null,
+				);
+			}
+
+			// Get current like status
+			const post = posts.find((p) => p.id === postId);
+			if (!post) return;
+
+			if (post.is_liked) {
+				await unlikePost(postId);
+			} else {
+				await likePost(postId);
+			}
+		} catch (error) {
+			// Revert optimistic update on error
+			setPosts((prev) =>
+				prev.map((post) =>
+					post.id === postId
+						? {
+								...post,
+								is_liked: !post.is_liked,
+								likes_count: post.is_liked
+									? post.likes_count + 1
+									: post.likes_count - 1,
+							}
+						: post,
+				),
+			);
+			console.error("Error toggling like:", error);
+		}
+	};
+
+	const handleComment = (postId: string) => {
+		setSelectedPostId(postId);
+		setCommentModalVisible(true);
+		// Close post detail modal if open
+		if (postDetailVisible) {
+			setPostDetailVisible(false);
+		}
+	};
+
+	const handleCloseComments = () => {
+		setCommentModalVisible(false);
+		setSelectedPostId(null);
+	};
+
+	const handleShare = (postId: string) => {
+		// TODO: Implement share functionality
+		console.log("Share post:", postId);
+	};
+
+	const handleProfilePress = (userId: string) => {
+		router.push(`/(protected)/user-profile?userId=${userId}`);
 	};
 
 	if (loading) {
@@ -77,6 +172,27 @@ export default function ProfileScreen() {
 				/>
 				<PostGrid posts={posts} onPostPress={handlePostPress} />
 			</ScrollView>
+
+			{/* Post Detail Modal */}
+			<PostDetailModal
+				visible={postDetailVisible}
+				onClose={handleClosePostDetail}
+				post={selectedPost}
+				onLike={handleLike}
+				onComment={handleComment}
+				onShare={handleShare}
+				onProfilePress={handleProfilePress}
+			/>
+
+			{/* Comment Modal */}
+			<CommentModal
+				visible={commentModalVisible}
+				onClose={handleCloseComments}
+				postId={selectedPostId || ""}
+				onCommentAdded={() => {
+					// Could refresh the post or update comment count
+				}}
+			/>
 		</SafeAreaView>
 	);
 }

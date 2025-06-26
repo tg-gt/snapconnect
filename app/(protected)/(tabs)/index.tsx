@@ -5,6 +5,7 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { PostList } from "@/components/feed/PostList";
 import { CommentModal } from "@/components/social/CommentModal";
+import { PostMenuModal } from "@/components/social/PostMenuModal";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { StoryViewer } from "@/components/stories/StoryViewer";
 import { getFeed, likePost, unlikePost, getStories, getCurrentUser } from "@/lib/api";
@@ -20,68 +21,76 @@ export default function HomeScreen() {
 	const [nextCursor, setNextCursor] = useState<string | undefined>();
 	const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 	const [commentModalVisible, setCommentModalVisible] = useState(false);
+	const [menuModalVisible, setMenuModalVisible] = useState(false);
+	const [selectedMenuPost, setSelectedMenuPost] = useState<Post | null>(null);
 	const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 	const [storyViewerVisible, setStoryViewerVisible] = useState(false);
 
-	const loadFeed = useCallback(
-		async (refresh = false) => {
-			try {
-				if (refresh) {
-					setRefreshing(true);
-				} else {
-					setLoading(true);
-				}
+	// Calculate story-related variables
+	const selectedUserStories = selectedStory
+		? stories.filter(s => s.user_id === selectedStory.user_id)
+		: [];
+	const initialStoryIndex = selectedStory
+		? selectedUserStories.findIndex(s => s.id === selectedStory.id)
+		: 0;
 
-				const response = await getFeed(refresh ? undefined : nextCursor);
-
-				if (refresh) {
-					setPosts(response.posts);
-				} else {
-					setPosts((prev) => [...prev, ...response.posts]);
-				}
-
-				setHasMore(response.has_more);
-				setNextCursor(response.next_cursor);
-			} catch (error) {
-				console.error("Error loading feed:", error);
-				Alert.alert("Error", "Failed to load feed. Please try again.");
-			} finally {
-				setLoading(false);
-				setRefreshing(false);
+	const loadFeed = async (cursor?: string) => {
+		try {
+			setLoading(true);
+			const data = await getFeed(cursor);
+			
+			if (cursor) {
+				setPosts(prev => [...prev, ...data.posts]);
+			} else {
+				setPosts(data.posts);
 			}
-		},
-		[nextCursor],
-	);
+			
+			setHasMore(data.has_more);
+			setNextCursor(data.next_cursor);
+		} catch (error) {
+			console.error("Error loading feed:", error);
+			Alert.alert("Error", "Failed to load feed. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	};
 
-	const loadStories = useCallback(async () => {
+	const loadStories = async () => {
 		try {
 			const storiesData = await getStories();
 			setStories(storiesData);
 		} catch (error) {
 			console.error("Error loading stories:", error);
 		}
-	}, []);
+	};
 
-	const loadCurrentUser = useCallback(async () => {
+	const loadCurrentUser = async () => {
 		try {
 			const user = await getCurrentUser();
 			setCurrentUser(user);
 		} catch (error) {
 			console.error("Error loading current user:", error);
 		}
+	};
+
+	useEffect(() => {
+		loadFeed();
+		loadStories();
+		loadCurrentUser();
 	}, []);
 
-	const handleRefresh = useCallback(() => {
-		setNextCursor(undefined);
-		loadFeed(true);
-		loadStories();
-	}, [loadFeed, loadStories]);
+	const handleRefresh = useCallback(async () => {
+		setRefreshing(true);
+		await loadFeed();
+		await loadStories();
+		setRefreshing(false);
+	}, []);
 
 	const handleLoadMore = useCallback(() => {
-		if (hasMore && !loading) {
-			loadFeed(false);
+		if (!loading && hasMore && nextCursor) {
+			loadFeed(nextCursor);
 		}
-	}, [hasMore, loading, loadFeed]);
+	}, [loading, hasMore, nextCursor]);
 
 	const handleLike = useCallback(
 		async (postId: string) => {
@@ -151,6 +160,43 @@ export default function HomeScreen() {
 		router.push(`/(protected)/user-profile?userId=${userId}`);
 	}, []);
 
+	const handleMenu = useCallback((postId: string) => {
+		const post = posts.find(p => p.id === postId);
+		if (post) {
+			setSelectedMenuPost(post);
+			setMenuModalVisible(true);
+		}
+	}, [posts]);
+
+	const handleCloseMenu = useCallback(() => {
+		setMenuModalVisible(false);
+		setSelectedMenuPost(null);
+	}, []);
+
+	const handleMenuShare = useCallback((postId: string) => {
+		handleShare(postId);
+	}, [handleShare]);
+
+	const handleMenuReport = useCallback((postId: string) => {
+		// TODO: Implement report functionality
+		console.log("Report post:", postId);
+		Alert.alert("Post Reported", "Thank you for your report. We'll review this post.");
+	}, []);
+
+	const handleMenuDelete = useCallback((postId: string) => {
+		// TODO: Implement delete functionality
+		console.log("Delete post:", postId);
+		// Remove from local state for now
+		setPosts(prev => prev.filter(p => p.id !== postId));
+		Alert.alert("Post Deleted", "Your post has been deleted.");
+	}, []);
+
+	const handleMenuEdit = useCallback((postId: string) => {
+		// TODO: Implement edit functionality
+		console.log("Edit post:", postId);
+		Alert.alert("Edit Post", "Edit functionality coming soon!");
+	}, []);
+
 	const handleStoryPress = useCallback((story: Story) => {
 		// Find all stories from the same user
 		const userStories = stories.filter(s => s.user_id === story.user_id);
@@ -167,29 +213,12 @@ export default function HomeScreen() {
 	const handleCloseStoryViewer = useCallback(() => {
 		setStoryViewerVisible(false);
 		setSelectedStory(null);
-		// Refresh stories to update view status
-		loadStories();
-	}, [loadStories]);
+	}, []);
 
 	const handleStoryUserProfile = useCallback((userId: string) => {
 		setStoryViewerVisible(false);
-		setSelectedStory(null);
 		router.push(`/(protected)/user-profile?userId=${userId}`);
 	}, []);
-
-	useEffect(() => {
-		loadFeed(true);
-		loadStories();
-		loadCurrentUser();
-	}, []);
-
-	// Get all stories for the selected user when viewing
-	const selectedUserStories = selectedStory 
-		? stories.filter(s => s.user_id === selectedStory.user_id)
-		: [];
-	const initialStoryIndex = selectedStory 
-		? selectedUserStories.findIndex(s => s.id === selectedStory.id)
-		: 0;
 
 	return (
 		<SafeAreaView className="flex-1 bg-background">
@@ -219,6 +248,7 @@ export default function HomeScreen() {
 					onComment={handleComment}
 					onShare={handleShare}
 					onProfilePress={handleProfilePress}
+					onMenu={handleMenu}
 				/>
 
 				{/* Comment Modal */}
@@ -229,6 +259,18 @@ export default function HomeScreen() {
 					onCommentAdded={() => {
 						// Could refresh feed or update comment count
 					}}
+				/>
+
+				{/* Post Menu Modal */}
+				<PostMenuModal
+					visible={menuModalVisible}
+					onClose={handleCloseMenu}
+					post={selectedMenuPost}
+					isOwnPost={selectedMenuPost?.user_id === currentUser?.id}
+					onShare={handleMenuShare}
+					onReport={handleMenuReport}
+					onDelete={handleMenuDelete}
+					onEdit={handleMenuEdit}
 				/>
 
 				{/* Story Viewer Modal */}

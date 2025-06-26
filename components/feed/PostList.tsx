@@ -22,6 +22,7 @@ interface PostListProps {
 	onComment?: (postId: string) => void;
 	onShare?: (postId: string) => void;
 	onProfilePress?: (userId: string) => void;
+	onMenu?: (postId: string) => void;
 }
 
 export function PostList({
@@ -35,6 +36,7 @@ export function PostList({
 	onComment,
 	onShare,
 	onProfilePress,
+	onMenu,
 }: PostListProps) {
 	const { colorScheme } = useColorScheme();
 
@@ -47,9 +49,10 @@ export function PostList({
 				onComment={onComment}
 				onShare={onShare}
 				onProfilePress={onProfilePress}
+				onMenu={onMenu}
 			/>
 		),
-		[onLike, onComment, onShare, onProfilePress],
+		[onLike, onComment, onShare, onProfilePress, onMenu],
 	);
 
 	const renderFooter = () => {

@@ -13,6 +13,7 @@ interface PostCardProps {
 	onComment?: (postId: string) => void;
 	onShare?: (postId: string) => void;
 	onProfilePress?: (userId: string) => void;
+	onMenu?: (postId: string) => void;
 }
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -23,6 +24,7 @@ export function PostCard({
 	onComment,
 	onShare,
 	onProfilePress,
+	onMenu,
 }: PostCardProps) {
 	const { colorScheme } = useColorScheme();
 	const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
@@ -41,6 +43,10 @@ export function PostCard({
 
 	const handleProfilePress = () => {
 		onProfilePress?.(post.user_id);
+	};
+
+	const handleMenu = () => {
+		onMenu?.(post.id);
 	};
 
 	const formatTimeAgo = (dateString: string) => {
@@ -97,7 +103,7 @@ export function PostCard({
 						)}
 					</View>
 				</TouchableOpacity>
-				<TouchableOpacity>
+				<TouchableOpacity onPress={handleMenu}>
 					<Ionicons
 						name="ellipsis-horizontal"
 						size={20}
