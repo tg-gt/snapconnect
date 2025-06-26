@@ -1,4 +1,4 @@
-**Perfect!** Those decisions give us a rock-solid foundation. You've essentially defined a **"Festival Operating System"** that organizers can deploy for their events. This is genuinely compelling - let me create the Phase 2 PRD now.
+**Perfect!** Those decisions give us a rock-solid foundation. You've essentially defined a **"Event Operating System"** that organizers can deploy for their events. This is genuinely compelling - let me create the Phase 2 PRD now.
 
 ## **🔄 UPDATED VERSION - Simplified Architecture**
 
@@ -14,14 +14,14 @@
 
 ```markdown
 # Product Requirements Document: SnapConnect Phase 2
-## Festival Social Operating System with Privacy-First Gamification
+## Event Social Operating System with Privacy-First Gamification
 
 ### Executive Summary
-Transform the existing SnapConnect Instagram MVP into a dedicated festival social platform. Phase 2 creates a **temporary, private Instagram deployment per event** - users join a specific event and the entire app becomes that event's social network. This is NOT a dual-mode app - it's a single-purpose festival operating system that organizers deploy as a privacy-first, gamified social layer for their specific event.
+Transform the existing SnapConnect Instagram MVP into a dedicated event social platform. Phase 2 creates a **temporary, private Instagram deployment per event** - users join a specific event and the entire app becomes that event's social network. This is NOT a dual-mode app - it's a single-purpose event operating system that organizers deploy as a privacy-first, gamified social layer for their specific event.
 
 ### Strategic Pivot & Market Opportunity
 **Phase 1**: Instagram clone for college students (B2C social sharing)
-**Phase 2**: Festival social platform for event organizers (B2B engagement tools)
+**Phase 2**: Event social platform for event organizers (B2B engagement tools)
 
 **Market Gap Identified**: No platform combines privacy-first design + social features + gamification specifically for events. Competitors like ConfyChat (messaging only), Mozi (friend tracking), and GooseChase (generic scavenger hunts) each solve pieces but miss the complete experience.
 
@@ -32,22 +32,22 @@ Transform the existing SnapConnect Instagram MVP into a dedicated festival socia
 - "Level playing field" - everyone starts with 0 followers, encourages authentic, in-the-moment expression
 - Ephemeral content removes "permanent consequences" anxiety
 
-**Revenue Model**: B2B SaaS - Festival organizers pay $500-5000 per event for white-label social experience included in ticket price.
+**Revenue Model**: B2B SaaS - Event organizers pay $500-5000 per event for white-label social experience included in ticket price.
 
 ---
 
 ## Core User Stories - Phase 2
 
 ### Event Organizers (Primary Customer)
-- **As an organizer**, I want to deploy a custom social app for my festival that increases attendee engagement and retention
+- **As an organizer**, I want to deploy a custom social app for my event that increases attendee engagement and retention
 - **As an organizer**, I want to create location-based quests and challenges that guide attendees through the venue
 - **As an organizer**, I want real-time analytics on attendee behavior and popular activities
 - **As an organizer**, I want to control content expiration (immediate to 1 week post-event)
 - **As an organizer**, I want to integrate sponsors into quests and rewards naturally
 - **As an organizer**, I want to moderate content and manage inappropriate behavior
 
-### Festival Attendees (End Users)  
-- **As an attendee**, I want to join my festival's private social network with a simple code
+### Event Attendees (End Users)  
+- **As an attendee**, I want to join my event's private social network with a simple code
 - **As an attendee**, I want to complete location-based quests and earn points/badges
 - **As an attendee**, I want to share ephemeral content that creates urgency and excitement
 - **As an attendee**, I want to discover other attendees with similar interests without revealing personal info
@@ -715,7 +715,7 @@ Prevent spam and encourage intentional sharing:
 ### Pricing Tiers
 - **Small Events** (50-200 people): $500 base + variables (max $1000)
 - **Medium Events** (200-1000 people): $1500 base + variables (max $3000)
-- **Large Festivals** (1000+ people): $5000 base + variables (max $10000)
+- **Large Events** (1000+ people): $5000 base + variables (max $10000)
 - **Enterprise/Multi-event**: Custom pricing with volume discounts
 
 **Example Variable Costs:**
@@ -726,7 +726,7 @@ Prevent spam and encourage intentional sharing:
 
 ### Target Customer Acquisition
 1. **Local Event Organizers**: Music venues, college events, corporate retreats
-2. **Festival Operators**: Music festivals, food festivals, art shows
+2. **Event Operators**: Music events, food events, art shows
 3. **Conference Organizers**: Tech conferences, trade shows
 4. **Educational Institutions**: Orientation events, campus activities
 
@@ -839,6 +839,6 @@ This Phase 2 PRD is designed to be **immediately actionable** for AI-driven deve
 ✅ **Clear user stories** and feature specifications
 ✅ **Incremental development sprints** with concrete goals
 ✅ **Technical architecture** that leverages your existing work
-✅ **Business model clarity** for B2B festival organizers
+✅ **Business model clarity** for B2B event organizers
 
 **Want me to dive deeper into any specific section or create the first development tasks to get started?** 🚀

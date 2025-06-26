@@ -102,7 +102,7 @@ Absolutely! That's much smarter from a development perspective. You want to get 
 - Functional quest system with location verification
 - Interactive map with quest markers  
 - Gamification with points and leaderboard
-- **This already demonstrates the core "Festival OS" concept!**
+- **This already demonstrates the core "Event OS" concept!**
 
 ### **Next Demo (AI-Enhanced)**
 - Same experience but with AI-powered intelligence
@@ -139,4 +139,4 @@ Great suggestion! This will make development much smoother and less risky.
 - [ ] Real-time points/leaderboard updates
 - [ ] Map integration shows quest locations accurately
 
-This simplified approach focuses on the **core differentiating features** that make this a "Festival Operating System" rather than just another social app. We can always add event joining/discovery later once the core experience is proven!
+This simplified approach focuses on the **core differentiating features** that make this a "Event Operating System" rather than just another social app. We can always add event joining/discovery later once the core experience is proven!
