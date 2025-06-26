@@ -4,11 +4,12 @@ import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { PostList } from "@/components/feed/PostList";
+import { FeedToggle } from "@/components/feed/FeedToggle";
 import { CommentModal } from "@/components/social/CommentModal";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { StoryViewer } from "@/components/stories/StoryViewer";
 import { getFeed, likePost, unlikePost, getStories, getCurrentUser } from "@/lib/api";
-import { Post, Story, User } from "@/lib/types";
+import { Post, Story, User, FeedType, DEMO_EVENT_CONTEXT } from "@/lib/types";
 
 export default function HomeScreen() {
 	const [posts, setPosts] = useState<Post[]>([]);
@@ -22,9 +23,11 @@ export default function HomeScreen() {
 	const [commentModalVisible, setCommentModalVisible] = useState(false);
 	const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 	const [storyViewerVisible, setStoryViewerVisible] = useState(false);
+	// Phase 2: Dual feed system state
+	const [activeFeedType, setActiveFeedType] = useState<FeedType>('following');
 
 	const loadFeed = useCallback(
-		async (refresh = false) => {
+		async (refresh = false, feedType = activeFeedType) => {
 			try {
 				if (refresh) {
 					setRefreshing(true);
@@ -32,7 +35,7 @@ export default function HomeScreen() {
 					setLoading(true);
 				}
 
-				const response = await getFeed(refresh ? undefined : nextCursor);
+				const response = await getFeed(feedType, refresh ? undefined : nextCursor, 10);
 
 				if (refresh) {
 					setPosts(response.posts);
@@ -50,7 +53,7 @@ export default function HomeScreen() {
 				setRefreshing(false);
 			}
 		},
-		[nextCursor],
+		[nextCursor, activeFeedType],
 	);
 
 	const loadStories = useCallback(async () => {
@@ -73,9 +76,17 @@ export default function HomeScreen() {
 
 	const handleRefresh = useCallback(() => {
 		setNextCursor(undefined);
-		loadFeed(true);
+		loadFeed(true, activeFeedType);
 		loadStories();
-	}, [loadFeed, loadStories]);
+	}, [loadFeed, loadStories, activeFeedType]);
+
+	// Phase 2: Handle feed type change
+	const handleFeedTypeChange = useCallback((feedType: FeedType) => {
+		setActiveFeedType(feedType);
+		setNextCursor(undefined);
+		setPosts([]);
+		loadFeed(true, feedType);
+	}, [loadFeed]);
 
 	const handleLoadMore = useCallback(() => {
 		if (hasMore && !loading) {
@@ -178,9 +189,14 @@ export default function HomeScreen() {
 	}, []);
 
 	useEffect(() => {
-		loadFeed(true);
+		loadFeed(true, activeFeedType);
 		loadStories();
 		loadCurrentUser();
+	}, []);
+
+	// Phase 2: Event context logging (for PoC)
+	useEffect(() => {
+		console.log('Demo Event Context:', DEMO_EVENT_CONTEXT);
 	}, []);
 
 	// Get all stories for the selected user when viewing
@@ -196,7 +212,7 @@ export default function HomeScreen() {
 			<View className="flex-1">
 				{/* Header */}
 				<View className="px-4 py-3 border-b border-border">
-					<Text className="text-2xl font-bold">SnapConnect</Text>
+					<Text className="text-2xl font-bold">{DEMO_EVENT_CONTEXT.eventName}</Text>
 				</View>
 
 				{/* Stories Bar */}
@@ -205,6 +221,12 @@ export default function HomeScreen() {
 					currentUser={currentUser}
 					onStoryPress={handleStoryPress}
 					onCreateStory={handleCreateStory}
+				/>
+
+				{/* Phase 2: Feed Toggle */}
+				<FeedToggle
+					activeTab={activeFeedType}
+					onTabChange={handleFeedTypeChange}
 				/>
 
 				{/* Feed */}
