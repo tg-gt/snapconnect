@@ -1,7 +1,16 @@
 **Perfect!** Those decisions give us a rock-solid foundation. You've essentially defined a **"Festival Operating System"** that organizers can deploy for their events. This is genuinely compelling - let me create the Phase 2 PRD now.
-Read file: docs/snapconnect/PRD/MVP-PRD.md
 
-Perfect! Now I'll create the Phase 2 PRD that builds on your existing MVP foundation and transforms it into the festival social platform we discussed.
+## **🔄 UPDATED VERSION - Simplified Architecture**
+
+**Key Changes Made:**
+- ✅ **Removed confusing "dual-mode navigation"** - Keep existing 5-tab Instagram layout
+- ✅ **Integrated event features within existing tabs** - No separate navigation system
+- ✅ **Specified AI stack** - Pinecone/Supabase pgvector + OpenAI CLIP + GPT-4V
+- ✅ **Simplified privacy approach** - Removed screenshot detection, moderate geofencing accuracy
+- ✅ **Enhanced profile editing** - Pseudonymous handles, about me, location info
+- ✅ **Modal-based detail screens** - Quest details, maps, leaderboards accessed from existing tabs
+
+---
 
 ```markdown
 # Product Requirements Document: SnapConnect Phase 2
@@ -203,33 +212,47 @@ CREATE TABLE export_requests (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Screenshot/recording warnings
-CREATE TABLE privacy_violations (
+-- Privacy settings (simplified)
+CREATE TABLE user_privacy_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  violation_type VARCHAR(30) NOT NULL, -- screenshot, screen_recording
-  detected_at TIMESTAMP DEFAULT NOW(),
-  warned BOOLEAN DEFAULT FALSE
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  geofenced_only BOOLEAN DEFAULT TRUE,
+  audience_scope VARCHAR(30) DEFAULT 'all_participants', -- all_participants, connections_only, activity_based
+  content_expires_with_event BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, event_id)
 );
 ```
 
-### Navigation Architecture - Extended
+### Navigation Architecture - Simplified
 
-#### Dual-Mode App Structure
+#### Contextual Event Content Within Existing Tabs
+Keep the existing Instagram-style 5-tab navigation and add event features **within** existing tabs:
+
 ```
-NORMAL MODE:          EVENT MODE:
-Home | Search         Event Feed | Quests | Map | Leaderboard | Profile
-Create | Activity |   
-Profile              
+Home Tab               Search Tab            Create Tab
+├── Social feed        ├── User search       ├── Post/Story creation
+├── Stories bar        ├── Event discovery   ├── Quest photo submission
+├── Event feed section ├── Join event w/code ├── Location quest completion
+├── Active quests      └── Find events       └── Quest verification
+└── Event stories      
+
+Activity Tab           Profile Tab
+├── Social notifications  ├── Current profile
+├── Quest completions    ├── Pseudonymous handle editing
+├── Event achievements   ├── About me section  
+├── Leaderboard updates  ├── Hometown/location
+└── Achievement unlocks  ├── Event achievements
+                         └── Quest history
 ```
 
-**New Event Mode Navigation (5-tab):**
-1. **Event Feed** - Event-specific posts and stories
-2. **Quests** - Available challenges and progress  
-3. **Map** - Interactive venue map with quest locations
-4. **Leaderboard** - Points rankings and achievements
-5. **Profile** - Event-specific profile and settings
+**Modal/Detail Screens** (accessed from tabs, not separate navigation):
+- Event join modal (from Search)
+- Quest detail screens (from Home)
+- Event map (from Home quest widgets)
+- Leaderboard (from Activity)
+- Organizer dashboard (separate access)
 
 ### Enhanced Feed Architecture
 **Dual-Feed System (X/Twitter style):**
@@ -270,26 +293,23 @@ High-trust event environments allow more open sharing than general public social
 - No imported follower counts or external social proof
 - Fresh start encourages authentic, in-the-moment personality
 
-#### Extended Screen Hierarchy
+#### Simplified Screen Hierarchy
 ```
 App
 ├── (auth) [existing]
 └── (protected)
-    ├── (tabs) [existing normal mode]
-    ├── (event-mode)
-    │   ├── event-feed.tsx        // Event-specific content feed with dual-feed tabs
-    │   ├── quests/
-    │   │   ├── index.tsx         // Quest list and progress
-    │   │   ├── quest-detail.tsx  // Individual quest
-    │   │   ├── quest-camera.tsx  // Photo/video capture for quests
-    │   │   └── ai-verification.tsx // AI quest verification results
-    │   ├── event-map.tsx         // Interactive venue map
-    │   ├── leaderboard.tsx       // Rankings and achievements
-    │   ├── event-profile.tsx     // Event-specific profile
-    │   ├── content-limits.tsx    // Daily content limits and quality scoring
-    │   └── privacy-controls.tsx  // Granular privacy settings
-    ├── event-join.tsx            // Join event with code
-    ├── event-discovery.tsx       // Browse available events
+    ├── (tabs) [existing Instagram navigation - enhanced with event features]
+    │   ├── index.tsx             // Home: Social feed + event feed + quest widgets
+    │   ├── search.tsx            // Search: Users + event discovery + join events
+    │   ├── create.tsx            // Create: Posts/stories + quest submissions
+    │   ├── activity.tsx          // Activity: Social + event notifications + achievements
+    │   └── profile.tsx           // Profile: Enhanced editing + event history
+    ├── event-join.tsx            // Modal: Join event with code
+    ├── quest-detail.tsx          // Modal: Individual quest details
+    ├── quest-camera.tsx          // Modal: Photo/video capture for quests
+    ├── event-map.tsx             // Modal: Interactive venue map
+    ├── leaderboard.tsx           // Modal: Rankings and achievements
+    ├── ai-verification.tsx       // Screen: Quest verification results
     ├── organizer/
     │   ├── dashboard.tsx         // Organizer analytics
     │   ├── quest-builder.tsx     // Create/edit quests
@@ -304,36 +324,40 @@ App
 
 ## Feature Specifications - Phase 2
 
-### 1. Event Discovery & Joining
-**Files to Create:**
-- `app/(protected)/event-discovery.tsx`
-- `app/(protected)/event-join.tsx`
+### 1. Event Discovery & Joining (Enhanced Search Tab)
+**Files to Enhance:**
+- `app/(protected)/(tabs)/search.tsx` - Add event discovery section
+- `app/(protected)/event-join.tsx` - Modal for joining events
 - `components/events/EventCard.tsx`
 - `components/events/JoinEventModal.tsx`
 
 **Key Features:**
-- Browse nearby/featured events
+- Browse nearby/featured events (integrated in Search tab)
 - Join with event code or QR scan
 - Event preview with details
 - Capacity and timing restrictions
 
 **User Flow:**
-1. User discovers event via code/QR/browse
-2. Views event details and privacy settings
-3. Creates anonymous event identity
-4. Joins event-specific social network
+1. User discovers event via Search tab or direct code/QR
+2. Views event details modal with privacy settings
+3. Joins event (uses existing profile, can edit for pseudonymous handle)
+4. Event content appears in existing tabs
 
-### 2. Quest System
+### 2. Quest System (Home Tab Widgets + Modals)
 **Files to Create:**
-- `app/(protected)/(event-mode)/quests/index.tsx`
-- `app/(protected)/(event-mode)/quests/quest-detail.tsx`
-- `app/(protected)/(event-mode)/quests/quest-camera.tsx`
-- `app/(protected)/(event-mode)/quests/ai-verification.tsx`
-- `components/quests/QuestCard.tsx`
-- `components/quests/QuestProgress.tsx`
-- `components/quests/LocationTracker.tsx`
+- `app/(protected)/quest-detail.tsx` - Modal for individual quest details
+- `app/(protected)/quest-camera.tsx` - Modal for photo/video capture
+- `app/(protected)/ai-verification.tsx` - Quest verification results screen
+- `components/quests/QuestCard.tsx` - Widget for Home tab
+- `components/quests/QuestProgress.tsx` - Progress tracking component
+- `components/quests/LocationTracker.tsx` - Geofencing component
 - `components/quests/AIVerificationStatus.tsx`
 - `components/quests/VerificationAppeal.tsx`
+
+**Integration Points:**
+- Home tab: Quest widgets and active quest list
+- Create tab: Quest photo submission integration
+- Activity tab: Quest completion notifications
 
 **Quest Types:**
 - **Location-based**: Check-in at specific venue locations with GPS + geofence validation
@@ -351,47 +375,49 @@ App
 - **Unlockable quest chains**: Complex unlock conditions and dependencies
 - **Time-limited challenges**: Urgency and scarcity mechanics
 
-### 3. Event-Specific Social Features
-**Files to Create:**
-- `app/(protected)/(event-mode)/event-feed.tsx`
-- `app/(protected)/(event-mode)/content-limits.tsx`
-- `app/(protected)/(event-mode)/privacy-controls.tsx`
-- `components/events/EventPostCard.tsx`
-- `components/events/EphemeralContent.tsx`
-- `components/events/EventStoriesBar.tsx`
-- `components/events/DualFeedTabs.tsx`
+### 3. Enhanced Social Features (Within Existing Tabs)
+**Files to Enhance/Create:**
+- `app/(protected)/(tabs)/index.tsx` - Add event feed section to Home tab
+- `app/(protected)/(tabs)/profile.tsx` - Enhanced profile editing for pseudonymous handles
+- `components/events/EventPostCard.tsx` - Event-specific post styling
+- `components/events/EphemeralContent.tsx` - Content with expiration
+- `components/events/EventStoriesBar.tsx` - Event stories integration
+- `components/feed/FeedToggle.tsx` - Following vs Discovery feed toggle
 - `components/events/QualityScoreDisplay.tsx`
 - `components/privacy/ContextualControls.tsx`
 
 **Enhanced Social Features:**
-- **Dual-Feed Architecture**: Following (reverse chronological) + Discovery (algorithmic)
-- **Event-scoped content**: Only visible to event participants with granular privacy controls
+- **Feed Enhancement**: Following (reverse chronological) + Discovery (algorithmic) in Home tab
+- **Event-scoped content**: Only visible to event participants with privacy controls
 - **Ephemeral posts**: Custom expiration (event end vs user-defined)
-- **Anonymous identities**: Temporary usernames detached from real identity
-- **Geofenced content**: Automatically hide content when users leave event area
+- **Pseudonymous handles**: User-editable display names for event contexts
+- **Geofenced content**: Automatically hide content when users leave event area (moderate accuracy)
 - **Quality incentives**: Daily content limits with engagement-based unlocks
 - **AI-powered discovery**: RAG-based content and people recommendations
-- **Screenshot warnings**: Privacy violation detection and user education
 
-### 4. Interactive Event Map
+### 4. Interactive Event Map (Modal Screen)
 **Files to Create:**
-- `app/(protected)/(event-mode)/event-map.tsx`
+- `app/(protected)/event-map.tsx` - Modal accessed from Home tab quest widgets
 - `components/map/VenueMap.tsx`
 - `components/map/QuestMarkers.tsx`
 - `components/map/AttendeeHeatmap.tsx`
 
 **Key Features:**
 - Interactive venue layout
-- Quest location markers
-- Real-time attendee density (privacy-safe)
+- Quest location markers with moderate geofencing accuracy
+- Real-time attendee density (privacy-safe, aggregated)
 - Points of interest and sponsor locations
 - Offline map caching for poor connectivity
 
-### 5. Gamification & Leaderboards
+**Access Points:**
+- Home tab quest widgets → "View Map" button
+- Quest detail modals → "Show on Map" button
+
+### 5. Gamification & Leaderboards (Activity Tab + Modal)
 **Files to Create:**
-- `app/(protected)/(event-mode)/leaderboard.tsx`
-- `components/gamification/PointsDisplay.tsx`
-- `components/gamification/AchievementBadges.tsx`
+- `app/(protected)/leaderboard.tsx` - Modal accessed from Activity tab
+- `components/gamification/PointsDisplay.tsx` - Widget for Activity tab
+- `components/gamification/AchievementBadges.tsx` - Achievement notifications
 - `components/gamification/LeaderboardCard.tsx`
 
 **Gamification Elements:**
@@ -400,6 +426,11 @@ App
 - Team-based challenges
 - Real-time leaderboard updates
 - Surprise bonus point opportunities
+
+**Integration Points:**
+- Activity tab: Achievement notifications and leaderboard preview
+- Profile tab: Personal achievement history
+- Quest completion: Points awarded notifications
 
 ### 6. Organizer Dashboard
 **Files to Create:**
@@ -418,20 +449,25 @@ App
 - Sponsor integration tools
 - Export attendee engagement data
 
-### 7. Privacy & Data Export
+### 7. Privacy Controls & Data Export (Profile Tab + Settings)
 **Files to Create:**
-- `app/(protected)/export/data-export.tsx`
+- `app/(protected)/export/data-export.tsx` - Accessed from Profile settings
 - `app/(protected)/export/export-status.tsx`
 - `components/privacy/ExportControls.tsx`
 - `components/privacy/EphemeralWarning.tsx`
-- `components/privacy/ScreenshotDetection.tsx`
+- `components/privacy/PrivacySettings.tsx` - Integrated in Profile tab
 
 **Privacy Features:**
 - Selective data export (contacts, photos, achievements)
-- Screenshot/screen recording detection and warnings
 - Automatic content deletion timers
-- Granular privacy controls
+- Geofenced content visibility controls
+- Audience scope settings (all participants, connections only, activity-based)
 - GDPR-compliant data handling
+
+**Integration Points:**
+- Profile tab: Privacy settings and data export access
+- Post creation: Privacy level selection
+- Event joining: Privacy preferences setup
 
 ---
 
@@ -469,9 +505,16 @@ Prevent spam and encourage intentional sharing:
 
 ## AI-Powered Features
 
+### AI Stack Specification
+**Vector Database & Embeddings:**
+- **Pinecone** or **Supabase pgvector** for vector storage
+- **OpenAI CLIP** for image/video embeddings and analysis
+- **OpenAI GPT-4V** for detailed quest verification
+- Company OpenAI API key covers development costs
+
 ### Quest Verification with RAG
 **Computer Vision Quest Verification:**
-- RAG analysis of submitted photos/videos for quest completion
+- CLIP embeddings + GPT-4V analysis of submitted photos/videos
 - 80%+ confidence threshold for automatic verification
 - Probabilistic verification adds "game-like randomness"
 - Appeals process for disputed completions
@@ -538,36 +581,36 @@ Prevent spam and encourage intentional sharing:
 ## Implementation Roadmap - Phase 2
 
 ### Phase 2A: Event Foundation (Week 1-2)
-**Sprint Goals**: Basic event creation and joining with spiky POV foundations
+**Sprint Goals**: Basic event creation and joining integrated into existing tabs
 
 1. **Database Extensions**
-   - Deploy new event-related tables including story_views, content_quality_scores
+   - Deploy new event-related tables with simplified privacy controls
    - Extend existing tables with event_id columns
    - Set up new RLS policies for event-scoped data
-   - Implement geofencing and privacy control tables
+   - Implement geofencing tables (moderate accuracy)
 
 2. **Event Discovery & Joining**
-   - Event code/QR joining system
-   - Basic event browsing
-   - Anonymous identity creation (temporary usernames)
-   - Event mode navigation toggle
-   - Geofenced visibility basic implementation
+   - Enhance Search tab with event discovery section
+   - Event code/QR joining modal system
+   - Basic event browsing integration
+   - Enhanced profile editing for pseudonymous handles
 
-3. **Dual-Feed Architecture Foundation**
-   - Following feed (reverse chronological)
-   - Discovery feed (basic algorithmic ranking)
-   - Feed switching UI components
+3. **Enhanced Feed Architecture**
+   - Add event content section to Home tab
+   - Following vs Discovery feed toggle
+   - Event-specific content filtering
    - Story views state management foundation
 
 ### Phase 2B: AI-Powered Gamification (Week 3-4)
 **Sprint Goals**: Quest system with AI verification and content quality systems
 
 1. **AI-Powered Quest System**
-   - Computer vision quest verification (RAG implementation)
-   - Location-based verification with geofencing
+   - Pinecone/Supabase pgvector setup for embeddings
+   - OpenAI CLIP integration for image/video analysis
+   - GPT-4V quest verification pipeline
+   - Location-based verification with moderate geofencing accuracy
    - Probabilistic scoring with appeals process
-   - Photo/video AI analysis pipeline
-   - Quest progress UI with verification status
+   - Quest progress UI integrated in Home tab
 
 2. **Content Quality Incentive System**
    - Daily content limits implementation
@@ -577,9 +620,9 @@ Prevent spam and encourage intentional sharing:
    - Content limit UI and notifications
 
 3. **Interactive Map & Leaderboards**
-   - Venue map integration with quest markers
+   - Venue map modal with quest markers
    - AI-verified quest completion tracking
-   - Real-time leaderboard with quality bonuses
+   - Real-time leaderboard accessible from Activity tab
    - Achievement system with AI-verified unlocks
 
 ### Phase 2C: Organizer Tools (Week 5-6)
@@ -600,18 +643,18 @@ Prevent spam and encourage intentional sharing:
    - Event package configuration
    - White-label branding options
 
-### Phase 2D: Advanced Privacy & Post-Event Experience (Week 7-8)
-**Sprint Goals**: Granular privacy controls and memory preservation
+### Phase 2D: Privacy Controls & Post-Event Experience (Week 7-8)
+**Sprint Goals**: Privacy settings and memory preservation
 
-1. **Advanced Privacy & Contextual Controls**
-   - Geofenced content visibility (GPS-based hiding)
-   - Granular audience controls (all participants, connections, activity-based)
-   - Sophisticated ephemeral content with custom expiration
-   - Screenshot/screen recording detection and education
-   - Privacy violation tracking and warnings
+1. **Simplified Privacy Controls**
+   - Geofenced content visibility (moderate GPS accuracy)
+   - Audience scope controls (all participants, connections, activity-based)
+   - Ephemeral content with event-based expiration
+   - Privacy settings integration in Profile tab
+   - User-controlled privacy preferences
 
 2. **Post-Event Experience & Memory Preservation**
-   - AI-curated highlight reel generation
+   - AI-curated highlight reel generation using CLIP embeddings
    - Connection persistence and real contact exchange
    - Personal data export before content deletion
    - "Keep in touch" feature with context preservation
@@ -621,7 +664,7 @@ Prevent spam and encourage intentional sharing:
    - Transparent organizer permission boundaries
    - Aggregate analytics without individual tracking
    - Content moderation tools with privacy protection
-   - Load testing with privacy controls
+   - Load testing with simplified privacy controls
    - Beta testing with real event scenarios
 
 ---
