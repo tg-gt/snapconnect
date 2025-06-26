@@ -130,33 +130,50 @@ export async function createPost(postData: CreatePostData): Promise<Post> {
 }
 
 export async function deletePost(postId: string): Promise<void> {
+	console.log("🔧 API: deletePost called with postId:", postId);
 	try {
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
+		
+		console.log("👤 API: Current user:", user?.id);
 		if (!user) throw new Error("User not authenticated");
 
 		// First check if the user owns this post
+		console.log("🔍 API: Checking post ownership...");
 		const { data: post, error: fetchError } = await supabase
 			.from("posts")
 			.select("user_id")
 			.eq("id", postId)
 			.single();
 
-		if (fetchError) throw fetchError;
+		if (fetchError) {
+			console.error("❌ API: Error fetching post:", fetchError);
+			throw fetchError;
+		}
+		
+		console.log("📄 API: Post data:", post);
+		console.log("🔒 API: Post owner:", post.user_id, "Current user:", user.id);
+		
 		if (post.user_id !== user.id) {
 			throw new Error("You can only delete your own posts");
 		}
 
 		// Delete the post (this will cascade to delete related media, likes, comments due to foreign key constraints)
+		console.log("🗑️ API: Deleting post from database...");
 		const { error } = await supabase
 			.from("posts")
 			.delete()
 			.eq("id", postId);
 
-		if (error) throw error;
+		if (error) {
+			console.error("❌ API: Error deleting post from database:", error);
+			throw error;
+		}
+		
+		console.log("✅ API: Post successfully deleted from database");
 	} catch (error) {
-		console.error("Error deleting post:", error);
+		console.error("💥 API: deletePost function error:", error);
 		throw error;
 	}
 }

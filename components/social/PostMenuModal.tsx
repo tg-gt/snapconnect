@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
 	Modal,
 	View,
@@ -31,10 +31,12 @@ export function PostMenuModal({
 	onEdit,
 }: PostMenuModalProps) {
 	const { colorScheme } = useColorScheme();
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	if (!post) return null;
 
 	const handleReport = () => {
+		console.log("🚨 PostMenuModal: Report option clicked");
 		onClose();
 		Alert.alert(
 			"Report Post",
@@ -44,33 +46,80 @@ export function PostMenuModal({
 				{
 					text: "Report",
 					style: "destructive",
-					onPress: () => onReport?.(post.id),
+					onPress: () => {
+						console.log("✅ Report confirmed by user");
+						onReport?.(post.id);
+					},
 				},
 			],
 		);
 	};
 
 	const handleDelete = () => {
+		console.log("🚨 PostMenuModal: Delete option clicked");
+		setShowDeleteConfirm(true);
+	};
+
+	const handleDeleteConfirm = () => {
+		console.log("✅ Delete confirmed by user, calling onDelete...");
+		setShowDeleteConfirm(false);
 		onClose();
-		Alert.alert(
-			"Delete Post",
-			"Are you sure you want to delete this post? This action cannot be undone.",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Delete",
-					style: "destructive",
-					onPress: () => onDelete?.(post.id),
-				},
-			],
-		);
+		onDelete?.(post.id);
+	};
+
+	const handleDeleteCancel = () => {
+		console.log("❌ Delete cancelled by user");
+		setShowDeleteConfirm(false);
 	};
 
 	const handleEdit = () => {
+		console.log("🚨 PostMenuModal: Edit option clicked");
 		onClose();
 		onEdit?.(post.id);
 	};
 
+	// Show delete confirmation
+	if (showDeleteConfirm) {
+		return (
+			<Modal
+				visible={visible}
+				transparent
+				animationType="fade"
+				onRequestClose={handleDeleteCancel}
+			>
+				<TouchableOpacity
+					className="flex-1 bg-black/50 justify-center items-center"
+					activeOpacity={1}
+					onPress={handleDeleteCancel}
+				>
+					<View
+						className={`mx-8 rounded-xl p-6 ${
+							colorScheme === "dark" ? "bg-gray-800" : "bg-white"
+						}`}
+					>
+						<Text className="text-lg font-semibold mb-2">Delete Post</Text>
+						<Text className="text-muted-foreground mb-6">
+							Are you sure you want to delete this post? This action cannot be undone.
+						</Text>
+						
+						<View className="flex-row justify-end space-x-4">
+							<TouchableOpacity onPress={handleDeleteCancel} className="px-4 py-2">
+								<Text className="text-lg">Cancel</Text>
+							</TouchableOpacity>
+							<TouchableOpacity 
+								onPress={handleDeleteConfirm} 
+								className="px-4 py-2 bg-red-500 rounded-lg"
+							>
+								<Text className="text-lg font-semibold text-white">Delete</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</TouchableOpacity>
+			</Modal>
+		);
+	}
+
+	// Show main menu
 	return (
 		<Modal
 			visible={visible}

@@ -155,14 +155,25 @@ export default function ProfileScreen() {
 	};
 
 	const handleMenuDelete = async (postId: string) => {
+		console.log("🗑️ Profile: Delete button clicked for post:", postId);
 		try {
+			console.log("🔄 Profile: Calling deletePost API...");
 			await deletePost(postId);
+			console.log("✅ Profile: Post deleted successfully from database");
+			
 			// Remove from local state
-			setPosts(prev => prev.filter(p => p.id !== postId));
+			setPosts(prev => {
+				const newPosts = prev.filter(p => p.id !== postId);
+				console.log("📱 Profile: Updated local state, posts count:", newPosts.length);
+				return newPosts;
+			});
+			
 			Alert.alert("Success", "Your post has been deleted.");
 		} catch (error) {
-			console.error("Error deleting post:", error);
-			Alert.alert("Error", "Failed to delete post. Please try again.");
+			console.error("❌ Profile: Error deleting post:", error);
+			console.error("Profile: Error details:", JSON.stringify(error, null, 2));
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			Alert.alert("Error", `Failed to delete post: ${errorMessage}`);
 		}
 	};
 
