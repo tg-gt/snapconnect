@@ -17,7 +17,7 @@
 ## Festival Social Operating System with Privacy-First Gamification
 
 ### Executive Summary
-Transform the existing SnapConnect Instagram MVP into a dedicated festival social platform. Phase 2 creates an event-specific app - users join events and all Instagram-style tabs show event-scoped content. No "normal social mode" - the entire app is a privacy-first, gamified social layer that event organizers deploy to enhance attendee engagement through quests, ephemeral content, and community building.
+Transform the existing SnapConnect Instagram MVP into a dedicated festival social platform. Phase 2 creates a **temporary, private Instagram deployment per event** - users join a specific event and the entire app becomes that event's social network. This is NOT a dual-mode app - it's a single-purpose festival operating system that organizers deploy as a privacy-first, gamified social layer for their specific event.
 
 ### Strategic Pivot & Market Opportunity
 **Phase 1**: Instagram clone for college students (B2C social sharing)
@@ -73,6 +73,12 @@ Transform the existing SnapConnect Instagram MVP into a dedicated festival socia
 ```
 
 ### Extended Database Schema
+
+#### Data Model Philosophy: Event-First Architecture
+**Key Change**: All content is event-scoped from creation. No "general social" content exists.
+- Every post, story, comment, like is created within an event context
+- `event_id` is required (NOT NULL) for all content tables
+- No backwards compatibility needed - this is a strategic pivot, not feature addition
 
 #### New Event System Tables
 ```sql
@@ -146,13 +152,13 @@ CREATE TABLE quest_completions (
 );
 
 -- Event-specific posts (extends existing posts table)
-ALTER TABLE posts ADD COLUMN event_id UUID REFERENCES events(id);
+ALTER TABLE posts ADD COLUMN event_id UUID REFERENCES events(id) NOT NULL;
 ALTER TABLE posts ADD COLUMN quest_id UUID REFERENCES quests(id);
 ALTER TABLE posts ADD COLUMN expires_at TIMESTAMP;
 ALTER TABLE posts ADD COLUMN allow_screenshot BOOLEAN DEFAULT TRUE;
 
 -- Event-specific stories (extends existing stories table)  
-ALTER TABLE stories ADD COLUMN event_id UUID REFERENCES events(id);
+ALTER TABLE stories ADD COLUMN event_id UUID REFERENCES events(id) NOT NULL;
 
 -- Story views for complex state management
 CREATE TABLE story_views (
@@ -236,27 +242,34 @@ CREATE TABLE user_privacy_settings (
 );
 ```
 
-### Navigation Architecture - Event-Specific App
+### Navigation Architecture - Single-Purpose Event App
 
-#### Single-Purpose Event App (No "Normal vs Event Mode")
-The entire app is event-focused. Users join events and all Instagram-style tabs show event-specific content:
+#### Core Architecture: Temporary Instagram Per Event
+Users download the app → Join specific event → Experience a private Instagram clone scoped to that event only.
+
+**Key Principle**: No general social features. All functionality is event-scoped from the moment users join.
 
 ```
 Home Tab               Search Tab            Create Tab
-├── Social feed        ├── User search       ├── Post/Story creation
-├── Stories bar        ├── Event discovery   ├── Quest photo submission
-├── Event feed section ├── Join event w/code ├── Location quest completion
-├── Active quests      └── Find events       └── Quest verification
-└── Event stories      
+├── Event social feed  ├── Event participants├── Post/Story creation
+├── Event stories bar  ├── Quest discovery   ├── Quest photo submission
+├── Active quests      ├── Join event w/code ├── Location quest completion
+├── Quest widgets      └── [Event-only search] └── Quest verification
+└── [Event-only content]
 
 Activity Tab           Profile Tab
-├── Social notifications  ├── Current profile
-├── Quest completions    ├── Pseudonymous handle editing
-├── Event achievements   ├── About me section  
-├── Leaderboard updates  ├── Hometown/location
-└── Achievement unlocks  ├── Event achievements
-                         └── Quest history
+├── Quest completions    ├── Event profile (pseudonymous)
+├── Event achievements   ├── Event handle editing
+├── Event notifications  ├── Event bio/info
+├── Leaderboard updates  ├── Quest history
+└── Social interactions  └── Event achievements
 ```
+
+#### MVP Scope: Single Event Per User
+- Users join **one event at a time** (no event switching)
+- All app state and content scoped to current event
+- Multi-event "workspace" functionality deferred to Phase 3
+- Simpler architecture and user experience
 
 **Modal/Detail Screens** (accessed from tabs, not separate navigation):
 - Event join modal (from Search)
@@ -290,7 +303,9 @@ High-trust event environments allow more open sharing than general public social
 **Geofenced Visibility:**
 - Content only visible within event boundaries (moderate GPS accuracy ±100m)
 - Automatic content hiding when users leave event area
-- Simple implementation without complex fallback mechanisms
+- **Implementation Strategy**: Simple distance calculation with generous radius (±500m)
+- Prioritizes user experience over strict geo-enforcement
+- Relies on event barrier-to-entry for primary security
 
 **Audience Controls:**
 - **All Participants**: Visible to everyone at the event
@@ -304,18 +319,18 @@ High-trust event environments allow more open sharing than general public social
 - No imported follower counts or external social proof
 - Fresh start encourages authentic, in-the-moment personality
 
-#### Simplified Screen Hierarchy
+#### Screen Hierarchy - Single Event Architecture
 ```
 App
-├── (auth) [existing]
-└── (protected)
-    ├── (tabs) [existing Instagram navigation - enhanced with event features]
-    │   ├── index.tsx             // Home: Social feed + event feed + quest widgets
-    │   ├── search.tsx            // Search: Users + event discovery + join events
-    │   ├── create.tsx            // Create: Posts/stories + quest submissions
-    │   ├── activity.tsx          // Activity: Social + event notifications + achievements
-    │   └── profile.tsx           // Profile: Enhanced editing + event history
-    ├── event-join.tsx            // Modal: Join event with code
+├── (auth) [existing - but leads to event joining, not general social]
+└── (protected) [event-scoped from login]
+    ├── (tabs) [Instagram navigation - ALL content is event-specific]
+    │   ├── index.tsx             // Home: Event feed + stories + quest widgets
+    │   ├── search.tsx            // Search: Event participants + join event flow
+    │   ├── create.tsx            // Create: Event posts/stories + quest submissions
+    │   ├── activity.tsx          // Activity: Event notifications + achievements
+    │   └── profile.tsx           // Profile: Event-scoped profile + quest history
+    ├── event-join.tsx            // Modal: Join event with code (first-time flow)
     ├── quest-detail.tsx          // Modal: Individual quest details
     ├── quest-camera.tsx          // Modal: Photo/video capture for quests
     ├── event-map.tsx             // Modal: Interactive venue map
@@ -349,10 +364,11 @@ App
 - Capacity and timing restrictions
 
 **User Flow:**
-1. User discovers event via Search tab or direct code/QR
-2. Views event details modal with privacy settings
-3. Joins event (uses existing profile, can edit for pseudonymous handle)
-4. Event content appears in existing tabs
+1. User downloads app and creates account
+2. User discovers/joins event via code/QR or event discovery
+3. User creates pseudonymous event profile (separate from any "real" identity)
+4. App transforms into private Instagram for that specific event
+5. All tabs now show event-scoped content only - no general social features
 
 ### 2. Quest System (Home Tab Widgets + Modals)
 **Files to Create:**
@@ -726,16 +742,17 @@ Prevent spam and encourage intentional sharing:
 - Customer satisfaction scores
 
 ### B2C Metrics (Attendees)  
-- Event join rate from invites
+- Event join rate from invites/codes
 - Average quests completed per participant (target: >5 per event)
 - Session duration during events (target: >30 min per day)
-- **Content creation rate**: Posts/stories per participant (measuring engagement within daily limits)
-- **Content limit effectiveness**: Daily limit hit rate and spam prevention success
-- **Feed engagement**: Following vs Discovery feed usage patterns
-- **Privacy adoption**: Usage of granular privacy controls
-- **Connection persistence**: Rate of real contact exchange post-event
-- **AI verification accuracy**: False positive/negative rates for quest verification
-- Data export usage patterns before content deletion
+- **Event engagement rate**: Posts/stories created per participant within event
+- **Social connections**: Follows/interactions made within event
+- **Quest completion rate**: Percentage of available quests completed
+- **Content quality**: Engagement on user-generated content within event
+- **Privacy adoption**: Usage of pseudonymous profiles and privacy controls
+- **Connection persistence**: Rate of real contact exchange before content expires
+- **Data export usage**: Pre-deletion export requests
+- **Return participation**: Users joining multiple events over time
 
 ### Technical Metrics
 - App performance during peak event times
