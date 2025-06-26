@@ -17,7 +17,7 @@
 ## Festival Social Operating System with Privacy-First Gamification
 
 ### Executive Summary
-Transform the existing SnapConnect Instagram MVP into a dual-purpose platform that serves both traditional social networking AND festival/event experiences. Phase 2 introduces "Event Mode" - a privacy-first, gamified social layer that event organizers can deploy to enhance attendee engagement through quests, ephemeral content, and community building.
+Transform the existing SnapConnect Instagram MVP into a dedicated festival social platform. Phase 2 creates an event-specific app - users join events and all Instagram-style tabs show event-scoped content. No "normal social mode" - the entire app is a privacy-first, gamified social layer that event organizers deploy to enhance attendee engagement through quests, ephemeral content, and community building.
 
 ### Strategic Pivot & Market Opportunity
 **Phase 1**: Instagram clone for college students (B2C social sharing)
@@ -189,6 +189,17 @@ CREATE TABLE quest_ai_verifications (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Quest appeals (simple organizer review)
+CREATE TABLE quest_appeals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  quest_completion_id UUID REFERENCES quest_completions(id) ON DELETE CASCADE,
+  participant_id UUID REFERENCES event_participants(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+  reviewed_by UUID REFERENCES users(id), -- organizer who reviewed
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Leaderboards
 CREATE TABLE leaderboards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -225,10 +236,10 @@ CREATE TABLE user_privacy_settings (
 );
 ```
 
-### Navigation Architecture - Simplified
+### Navigation Architecture - Event-Specific App
 
-#### Contextual Event Content Within Existing Tabs
-Keep the existing Instagram-style 5-tab navigation and add event features **within** existing tabs:
+#### Single-Purpose Event App (No "Normal vs Event Mode")
+The entire app is event-focused. Users join events and all Instagram-style tabs show event-specific content:
 
 ```
 Home Tab               Search Tab            Create Tab
@@ -277,9 +288,9 @@ Activity Tab           Profile Tab
 High-trust event environments allow more open sharing than general public social networks. Users can granularly control their broadcast settings:
 
 **Geofenced Visibility:**
-- Content only visible within event boundaries (GPS + geofence validation)
+- Content only visible within event boundaries (moderate GPS accuracy ±100m)
 - Automatic content hiding when users leave event area
-- Option to extend visibility to "nearby" (within 1 mile of event)
+- Simple implementation without complex fallback mechanisms
 
 **Audience Controls:**
 - **All Participants**: Visible to everyone at the event
@@ -360,7 +371,7 @@ App
 - Activity tab: Quest completion notifications
 
 **Quest Types:**
-- **Location-based**: Check-in at specific venue locations with GPS + geofence validation
+- **Location-based**: Check-in at specific venue locations with moderate GPS accuracy (±100m)
 - **Photo challenges**: AI-verified capture of specific scenes/objects
 - **Social quests**: Meet other attendees, group photos with face detection
 - **Scavenger hunts**: Find hidden QR codes/objects with computer vision
@@ -369,8 +380,8 @@ App
 **Key Features:**
 - **AI-Powered Verification**: RAG analysis of submitted photos/videos
 - **Probabilistic Scoring**: 80%+ confidence threshold with acceptable false positives
-- **Real-time location verification**: GPS + venue geofencing
-- **Appeals Process**: Human review for disputed AI decisions
+- **Real-time location verification**: Moderate GPS accuracy, no manual fallbacks needed
+- **Appeals Process**: Simple database table for organizer manual review
 - **Progress tracking**: Point systems with engagement-based bonuses
 - **Unlockable quest chains**: Complex unlock conditions and dependencies
 - **Time-limited challenges**: Urgency and scarcity mechanics
@@ -392,7 +403,7 @@ App
 - **Ephemeral posts**: Custom expiration (event end vs user-defined)
 - **Pseudonymous handles**: User-editable display names for event contexts
 - **Geofenced content**: Automatically hide content when users leave event area (moderate accuracy)
-- **Quality incentives**: Daily content limits with engagement-based unlocks
+- **Quality incentives**: Flat daily content limits for all users
 - **AI-powered discovery**: RAG-based content and people recommendations
 
 ### 4. Interactive Event Map (Modal Screen)
@@ -476,17 +487,17 @@ App
 ### Daily Content Limits
 Prevent spam and encourage intentional sharing:
 
-**Base Daily Limits:**
+**Flat Daily Limits (No Quality-Based Increases):**
 - Video content: 2 hours total per day
 - Photos: 20 photos per day  
 - Stories: 10 stories per day
 - Posts: 5 posts per day
 
-**Quality Scoring Unlocks:**
-- High engagement (likes/comments) unlocks additional posting privileges
-- Quest completion increases daily limits by 20%
-- Well-received content gets priority placement in Discovery feed
-- "Quality Contributor" badge unlocks unlimited posting
+**Implementation:**
+- Limits are configurable constants in source code
+- No engagement-based unlocks or quality scoring
+- All participants have equal posting opportunities
+- Quest completion does not increase limits
 
 ### Post-Event Experience
 **Highlight Reel Generation:**
@@ -510,7 +521,8 @@ Prevent spam and encourage intentional sharing:
 - **Pinecone** or **Supabase pgvector** for vector storage
 - **OpenAI CLIP** for image/video embeddings and analysis
 - **OpenAI GPT-4V** for detailed quest verification
-- Company OpenAI API key covers development costs
+- **OpenAI API Key**: Stored in `.env` file (`OPENAI_API_KEY=your_key_here`)
+- **No rate limiting required for MVP** - single event testing focus
 
 ### Quest Verification with RAG
 **Computer Vision Quest Verification:**
@@ -523,7 +535,7 @@ Prevent spam and encourage intentional sharing:
 **Example Quest Types:**
 - "Take a photo with someone wearing a red hat" → Face detection + color analysis
 - "Capture the main stage during a performance" → Scene recognition + audio analysis
-- "Find the hidden QR code near the food trucks" → QR detection + location verification
+- "Find the hidden QR code near the food trucks" → QR detection + moderate GPS location check
 
 ### Content Discovery RAG
 **Interest-Based Discovery:**
@@ -613,11 +625,9 @@ Prevent spam and encourage intentional sharing:
    - Quest progress UI integrated in Home tab
 
 2. **Content Quality Incentive System**
-   - Daily content limits implementation
-   - Quality scoring algorithm
-   - Engagement-based limit unlocks
-   - "Quality Contributor" badge system
+   - Daily content limits implementation (flat limits for all users)
    - Content limit UI and notifications
+   - Simple spam prevention without complex scoring
 
 3. **Interactive Map & Leaderboards**
    - Venue map modal with quest markers
@@ -719,8 +729,8 @@ Prevent spam and encourage intentional sharing:
 - Event join rate from invites
 - Average quests completed per participant (target: >5 per event)
 - Session duration during events (target: >30 min per day)
-- **Content creation rate**: Posts/stories per participant (measuring spam prevention success)
-- **Quality score distribution**: Percentage of users unlocking additional posting privileges
+- **Content creation rate**: Posts/stories per participant (measuring engagement within daily limits)
+- **Content limit effectiveness**: Daily limit hit rate and spam prevention success
 - **Feed engagement**: Following vs Discovery feed usage patterns
 - **Privacy adoption**: Usage of granular privacy controls
 - **Connection persistence**: Rate of real contact exchange post-event
@@ -739,8 +749,8 @@ Prevent spam and encourage intentional sharing:
 ## Risk Mitigation & Contingencies
 
 ### Technical Risks
-- **Poor connectivity at venues**: Offline-first quest caching, graceful degradation
-- **GPS accuracy issues**: Manual check-in options, QR code backups
+- **Poor connectivity at venues**: Offline-first quest caching, graceful degradation  
+- **GPS accuracy variance**: Moderate accuracy tolerance (±100m) handles most scenarios
 - **Scale challenges**: Load testing, CDN optimization
 
 ### Business Risks  
@@ -786,7 +796,7 @@ This Phase 2 PRD transforms SnapConnect from a generic social app into a special
 
 3. **Reverse Chronological Default**: Fights the "popularity spiral" by showing newest content first, giving everyone equal visibility opportunity regardless of early adoption.
 
-4. **Quality Over Quantity Incentives**: Daily content limits with engagement-based unlocks prevent spam while rewarding thoughtful content creation.
+4. **Quality Over Quantity Incentives**: Flat daily content limits prevent spam while ensuring equal posting opportunities for all participants.
 
 5. **AI-Verified Gamification**: Probabilistic quest verification with acceptable false positives adds game-like unpredictability while enabling sophisticated challenges.
 
