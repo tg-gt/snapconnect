@@ -44,7 +44,7 @@ export default function HomeScreen() {
 	const selectedUserStories = selectedStory
 		? stories.filter(s => s.user_id === selectedStory.user_id)
 		: [];
-	const initialStoryIndex = selectedStory
+	const initialStoryIndex = selectedStory && selectedUserStories.length > 0
 		? selectedUserStories.findIndex(s => s.id === selectedStory.id)
 		: 0;
 

@@ -200,6 +200,24 @@ export function StoryViewer({
 					onPress={handleTap}
 					style={styles.storyContent}
 				>
+					{/* Tap zone indicators (subtle visual guides) */}
+					<View style={styles.tapZones}>
+						{currentIndex > 0 && (
+							<View style={styles.leftTapZone}>
+								<View style={styles.tapIndicator}>
+									<Ionicons name="chevron-back" size={16} color="rgba(255,255,255,0.6)" />
+								</View>
+							</View>
+						)}
+						{currentIndex < stories.length - 1 && (
+							<View style={styles.rightTapZone}>
+								<View style={styles.tapIndicator}>
+									<Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.6)" />
+								</View>
+							</View>
+						)}
+					</View>
+
 					{isVideo ? (
 						<Video
 							source={{ uri: currentStory.media_url }}
@@ -341,6 +359,36 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	tapZones: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		flexDirection: "row",
+		zIndex: 1,
+	},
+	leftTapZone: {
+		width: screenWidth / 3,
+		height: "100%",
+		justifyContent: "center",
+		alignItems: "flex-start",
+		paddingLeft: 20,
+	},
+	rightTapZone: {
+		position: "absolute",
+		right: 0,
+		width: screenWidth / 3,
+		height: "100%",
+		justifyContent: "center",
+		alignItems: "flex-end",
+		paddingRight: 20,
+	},
+	tapIndicator: {
+		backgroundColor: "rgba(0,0,0,0.3)",
+		borderRadius: 20,
+		padding: 8,
 	},
 	media: {
 		width: screenWidth,

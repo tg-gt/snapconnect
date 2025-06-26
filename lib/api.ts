@@ -915,20 +915,23 @@ export async function viewStory(storyId: string): Promise<void> {
 		} = await supabase.auth.getUser();
 		if (!user) throw new Error("User not authenticated");
 
-		// Insert view record (ignore if already exists due to unique constraint)
-		await supabase
+		// Use upsert to handle duplicate records gracefully
+		const { error } = await supabase
 			.from("story_views")
-			.insert({
+			.upsert({
 				story_id: storyId,
 				viewer_id: user.id,
-			})
-			.select()
-			.single();
-	} catch (error) {
-		// Ignore duplicate key errors (user already viewed this story)
-		if (!(error as any)?.message?.includes("duplicate key")) {
+				viewed_at: new Date().toISOString(),
+			}, {
+				onConflict: 'story_id,viewer_id',
+				ignoreDuplicates: false
+			});
+
+		if (error) {
 			console.error("Error viewing story:", error);
 		}
+	} catch (error) {
+		console.error("Error viewing story:", error);
 	}
 }
 
