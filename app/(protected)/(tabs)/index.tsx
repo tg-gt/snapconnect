@@ -11,8 +11,7 @@ import { PostMenuModal } from "@/components/social/PostMenuModal";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { StoryViewer } from "@/components/stories/StoryViewer";
 import { getFeed, likePost, unlikePost, getStories, getCurrentUser, deletePost, updatePost } from "@/lib/api";
-import { Post, Story, User, FeedType, DEMO_EVENT_CONTEXT, Quest, QuestProgress as QuestProgressType, LocationData } from "@/lib/types";
-import { QuestCard } from "@/components/quests/QuestCard";
+import { Post, Story, User, FeedType, DEMO_EVENT_CONTEXT } from "@/lib/types";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -42,10 +41,6 @@ export default function HomeScreen() {
 
 	// Phase 2: Dual feed system state
 	const [activeFeedType, setActiveFeedType] = useState<FeedType>('following');
-
-	// Phase 2: Quest system state
-	const [quests, setQuests] = useState<Quest[]>([]);
-	const [questProgresses, setQuestProgresses] = useState<QuestProgressType[]>([]);
 
 	const { colorScheme } = useColorScheme();
 
@@ -105,78 +100,12 @@ export default function HomeScreen() {
 		}
 	};
 
-	// Phase 2: Load demo quests
-	const loadQuests = async () => {
-		try {
-			// Mock quest data - in real app, this would come from API
-			const mockQuests: Quest[] = [
-				{
-					id: 'quest-1',
-					event_id: DEMO_EVENT_CONTEXT.eventId,
-					title: 'Find the Main Stage',
-					description: 'Navigate to the main stage and take a photo of the setup',
-					quest_type: 'location',
-					points_reward: 50,
-					location_latitude: 37.7749,
-					location_longitude: -122.4194,
-					location_radius_meters: 100,
-					required_photo: true,
-					is_active: true,
-					order_index: 1,
-					created_at: new Date().toISOString(),
-				},
-				{
-					id: 'quest-2',
-					event_id: DEMO_EVENT_CONTEXT.eventId,
-					title: 'Meet 3 New People',
-					description: 'Start conversations with 3 new attendees and take a group photo',
-					quest_type: 'social',
-					points_reward: 75,
-					location_radius_meters: 0,
-					required_photo: true,
-					is_active: true,
-					order_index: 2,
-					created_at: new Date().toISOString(),
-				},
-				{
-					id: 'quest-3',
-					event_id: DEMO_EVENT_CONTEXT.eventId,
-					title: 'Food Truck Adventure',
-					description: 'Visit the food truck area and try something new',
-					quest_type: 'location',
-					points_reward: 30,
-					location_latitude: 37.7751,
-					location_longitude: -122.4180,
-					location_radius_meters: 50,
-					required_photo: false,
-					is_active: true,
-					order_index: 3,
-					created_at: new Date().toISOString(),
-				},
-			];
 
-			setQuests(mockQuests);
-
-			// Initialize quest progress
-			const mockProgresses: QuestProgressType[] = mockQuests.map(quest => ({
-				quest,
-				is_in_range: false,
-				can_complete: false,
-				progress_percentage: 10,
-				distance_to_location: undefined,
-			}));
-
-			setQuestProgresses(mockProgresses);
-		} catch (error) {
-			console.error("Error loading quests:", error);
-		}
-	};
 
 	useEffect(() => {
 		loadFeed(true, activeFeedType);
 		loadStories();
 		loadCurrentUser();
-		loadQuests();
 	}, []);
 
 	// Phase 2: Event context logging (for PoC)
@@ -388,29 +317,7 @@ export default function HomeScreen() {
 		router.push(`/(protected)/user-profile?userId=${userId}`);
 	}, []);
 
-	// Phase 2: Quest handlers
-	const handleQuestPress = useCallback((questId: string) => {
-		router.push({
-			pathname: '/(protected)/quest-detail',
-			params: { questId },
-		});
-	}, []);
 
-	const handleQuestComplete = useCallback(async (questId: string) => {
-		try {
-			// Find the quest progress
-			const questProgress = questProgresses.find(qp => qp.quest.id === questId);
-			if (!questProgress?.can_complete) {
-				Alert.alert('Cannot Complete', 'Quest requirements not met yet!');
-				return;
-			}
-
-			// Navigate to quest detail for completion
-			handleQuestPress(questId);
-		} catch (error) {
-			console.error('Error handling quest completion:', error);
-		}
-	}, [questProgresses, handleQuestPress]);
 
 	return (
 		<SafeAreaView className="flex-1 bg-background">
@@ -434,28 +341,7 @@ export default function HomeScreen() {
 					onTabChange={handleFeedTypeChange}
 				/>
 
-				{/* Phase 2: Active Quests Section */}
-				{questProgresses.length > 0 && (
-					<View className="px-4 py-3 border-b border-border">
-						<View className="flex-row items-center justify-between mb-3">
-							<Text className="text-lg font-semibold">Active Quests</Text>
-							<TouchableOpacity>
-								<Text className="text-blue-600 font-medium">View All</Text>
-							</TouchableOpacity>
-						</View>
 
-						{/* Show first 2 active quests */}
-						{questProgresses.slice(0, 2).map((questProgress) => (
-							<QuestCard
-								key={questProgress.quest.id}
-								questProgress={questProgress}
-								onPress={() => handleQuestPress(questProgress.quest.id)}
-								onComplete={() => handleQuestComplete(questProgress.quest.id)}
-								className="mb-3 last:mb-0"
-							/>
-						))}
-					</View>
-				)}
 
 				{/* Feed */}
 				<PostList

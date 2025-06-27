@@ -42,6 +42,15 @@ export default function TabsLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="quests"
+				options={{
+					title: "Quests",
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="trophy" size={size} color={color} />
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="search"
 				options={{
 					title: "Search",
