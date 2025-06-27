@@ -185,3 +185,64 @@ export interface FeedToggleProps {
 	activeTab: FeedType;
 	onTabChange: (tab: FeedType) => void;
 }
+
+// Quest System Types (Phase 2)
+export interface Quest {
+	id: string;
+	event_id: string;
+	title: string;
+	description: string;
+	quest_type: 'location' | 'photo' | 'social' | 'scavenger' | 'sponsor';
+	points_reward: number;
+	location_latitude?: number;
+	location_longitude?: number;
+	location_radius_meters: number;
+	required_photo: boolean;
+	unlock_condition?: string; // JSON for complex unlock logic
+	time_limit_minutes?: number;
+	max_completions?: number; // null = unlimited
+	is_active: boolean;
+	order_index: number;
+	created_at: string;
+}
+
+export interface QuestCompletion {
+	id: string;
+	quest_id: string;
+	participant_id: string;
+	completion_data?: any; // Photos, text responses, etc.
+	points_earned: number;
+	completed_at: string;
+	verified: boolean;
+	verified_by?: string;
+}
+
+export interface EventParticipant {
+	id: string;
+	event_id: string;
+	user_id: string;
+	display_name?: string;
+	joined_at: string;
+	total_points: number;
+	quests_completed: number;
+	is_active: boolean;
+	role: 'participant' | 'moderator' | 'organizer';
+}
+
+// Quest Progress Tracking
+export interface QuestProgress {
+	quest: Quest;
+	completion?: QuestCompletion;
+	distance_to_location?: number; // in meters
+	is_in_range: boolean;
+	can_complete: boolean;
+	progress_percentage: number;
+}
+
+// Location types
+export interface LocationData {
+	latitude: number;
+	longitude: number;
+	accuracy?: number;
+	timestamp?: number;
+}

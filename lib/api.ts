@@ -1171,3 +1171,121 @@ export async function markMessagesAsRead(partnerId: string): Promise<void> {
 		throw error;
 	}
 }
+
+// Quest System API Functions (Phase 2)
+import { Quest, QuestCompletion, EventParticipant, QuestProgress as QuestProgressType } from "@/lib/types";
+
+export async function getEventQuests(eventId: string): Promise<Quest[]> {
+	try {
+		// Mock quest data - in real app, this would be from database
+		const mockQuests: Quest[] = [
+			{
+				id: 'quest-1',
+				event_id: eventId,
+				title: 'Find the Main Stage',
+				description: 'Navigate to the main stage and take a photo of the setup',
+				quest_type: 'location',
+				points_reward: 50,
+				location_latitude: 37.7749,
+				location_longitude: -122.4194,
+				location_radius_meters: 100,
+				required_photo: true,
+				is_active: true,
+				order_index: 1,
+				created_at: new Date().toISOString(),
+			},
+			{
+				id: 'quest-2',
+				event_id: eventId,
+				title: 'Meet 3 New People',
+				description: 'Start conversations with 3 new attendees and take a group photo',
+				quest_type: 'social',
+				points_reward: 75,
+				location_radius_meters: 0,
+				required_photo: true,
+				is_active: true,
+				order_index: 2,
+				created_at: new Date().toISOString(),
+			},
+			{
+				id: 'quest-3',
+				event_id: eventId,
+				title: 'Food Truck Adventure',
+				description: 'Visit the food truck area and try something new',
+				quest_type: 'location',
+				points_reward: 30,
+				location_latitude: 37.7751,
+				location_longitude: -122.4180,
+				location_radius_meters: 50,
+				required_photo: false,
+				is_active: true,
+				order_index: 3,
+				created_at: new Date().toISOString(),
+			},
+		];
+
+		return mockQuests;
+	} catch (error) {
+		console.error("Error fetching event quests:", error);
+		throw error;
+	}
+}
+
+export async function getQuestProgress(questId: string): Promise<QuestProgressType | null> {
+	try {
+		// Mock implementation - in real app, would fetch from database
+		const quest = await getEventQuests(DEMO_EVENT_CONTEXT.eventId);
+		const targetQuest = quest.find(q => q.id === questId);
+		
+		if (!targetQuest) return null;
+
+		return {
+			quest: targetQuest,
+			is_in_range: false,
+			can_complete: false,
+			progress_percentage: 10,
+			distance_to_location: undefined,
+		};
+	} catch (error) {
+		console.error("Error fetching quest progress:", error);
+		throw error;
+	}
+}
+
+export async function completeQuest(
+	questId: string, 
+	completionData?: any
+): Promise<QuestCompletion> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Mock implementation - in real app, would save to database
+		const completion: QuestCompletion = {
+			id: 'completion-' + Date.now(),
+			quest_id: questId,
+			participant_id: DEMO_EVENT_CONTEXT.participantId,
+			completion_data: completionData,
+			points_earned: 50, // This would come from the quest
+			completed_at: new Date().toISOString(),
+			verified: true,
+		};
+
+		return completion;
+	} catch (error) {
+		console.error("Error completing quest:", error);
+		throw error;
+	}
+}
+
+export async function getUserQuestCompletions(userId: string): Promise<QuestCompletion[]> {
+	try {
+		// Mock implementation - in real app, would fetch from database
+		return [];
+	} catch (error) {
+		console.error("Error fetching user quest completions:", error);
+		throw error;
+	}
+}
