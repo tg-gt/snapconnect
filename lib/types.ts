@@ -168,3 +168,20 @@ export interface UpdateProfileData {
 	website?: string;
 	is_private?: boolean;
 }
+
+// Phase 2: Event Context (hardcoded for PoC)
+export const DEMO_EVENT_CONTEXT = {
+	eventId: '550e8400-e29b-41d4-a716-446655440000',
+	eventName: 'SnapConnect Demo Event',
+	participantId: 'demo-participant-123', 
+	eventStartDate: '2024-12-01',
+	eventEndDate: '2024-12-02'
+} as const;
+
+// Feed Types for Dual Feed System
+export type FeedType = 'following' | 'discovery';
+
+export interface FeedToggleProps {
+	activeTab: FeedType;
+	onTabChange: (tab: FeedType) => void;
+}

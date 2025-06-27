@@ -30,7 +30,7 @@ This approach allows us to:
 
 ### **🔧 Prerequisites & Setup** 
 - [ ] **Environment Setup**
-  - [ ] Install additional dependencies: `expo-location`, `expo-sensors` etc.
+  - [ ] Install additional dependencies: `expo-location@~18.1.5`, `expo-sensors@~14.1.4`, etc.
   - [ ] Add OpenAI API key to `.env` (for later use)
   - [ ] Basic database schema extensions
 
@@ -64,6 +64,12 @@ This approach allows us to:
   - [ ] Simple photo submission (no AI verification yet)
   - [ ] Manual/automatic quest completion
   - [ ] Basic completion validation
+
+**Technical Note: QR/Barcode Scanning**
+- Use `expo-camera@16.1.9` for QR code scanning (not deprecated `expo-barcode-scanner`)
+- Implementation: `CameraView` component with `onBarcodeScanned` prop
+- Supports QR codes, PDF417, and other barcode formats
+- Unified camera interface for both photo capture and scanning
 
 ### **3. Interactive Event Map**
 - [ ] **Map Implementation**

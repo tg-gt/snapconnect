@@ -9,14 +9,22 @@ import {
 	UpdateProfileData,
 	Story,
 	StoryView,
+	FeedType,
+	DEMO_EVENT_CONTEXT,
 } from "@/lib/types";
 
-// Posts API
+// Posts API - Enhanced for dual feed system
 export async function getFeed(
+	feedType: FeedType = 'following',
 	cursor?: string,
 	limit = 10,
 ): Promise<FeedResponse> {
 	try {
+		// Get current user to check likes and feed filtering
+		const {
+			data: { user: currentUser },
+		} = await supabase.auth.getUser();
+
 		let query = supabase
 			.from("posts")
 			.select(
@@ -28,8 +36,35 @@ export async function getFeed(
 				media:post_media(*)
 			`,
 			)
-			.order("created_at", { ascending: false })
 			.limit(limit);
+
+		if (feedType === 'following') {
+			// Following feed: Only posts from users you follow + your own posts
+			// Reverse chronological order (newest first)
+			if (currentUser) {
+				const { data: following } = await supabase
+					.from("follows")
+					.select("following_id")
+					.eq("follower_id", currentUser.id);
+
+				const followingIds = following?.map(f => f.following_id) || [];
+				followingIds.push(currentUser.id); // Include own posts
+
+				query = query
+					.in("user_id", followingIds)
+					.order("created_at", { ascending: false });
+			} else {
+				// If no user, show empty feed
+				query = query.eq("user_id", "never-match");
+			}
+		} else {
+			// Discovery feed: Algorithmic ranking based on engagement
+			// For now, simple engagement-based ranking (likes + comments)
+			query = query
+				.order("likes_count", { ascending: false })
+				.order("comments_count", { ascending: false })
+				.order("created_at", { ascending: false });
+		}
 
 		if (cursor) {
 			query = query.lt("created_at", cursor);
@@ -38,11 +73,6 @@ export async function getFeed(
 		const { data: posts, error } = await query;
 
 		if (error) throw error;
-
-		// Get current user to check likes
-		const {
-			data: { user: currentUser },
-		} = await supabase.auth.getUser();
 
 		// Check which posts are liked by current user
 		let likedPostIds: string[] = [];

@@ -64,9 +64,17 @@ const DEMO_EVENT_CONTEXT = {
    -- All tables fully specified, no ambiguity
    ```
 
-2. **Dependencies**:
+2. **Dependencies** (✅ Completed):
    ```bash
-   npm install expo-location expo-sensors
+   # Already installed with updated versions:
+   # expo-location@18.1.5, expo-sensors@14.1.4, expo-file-system@18.1.10
+   # expo-sharing@13.1.5, expo-haptics@14.1.4, expo-camera@16.1.9
+   # react-native-qrcode-svg@6.3.15
+   # Note: Using expo-camera for QR/barcode scanning (not deprecated expo-barcode-scanner)
+   ```
+
+3. **Environment**:
+   ```bash
    # Add to .env: OPENAI_API_KEY=your_key (for Week 5)
    ```
 

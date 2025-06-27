@@ -61,14 +61,14 @@ Transform the existing SnapConnect Instagram MVP into a dedicated event social p
 ### New Dependencies Required
 ```json
 {
-  "expo-location": "~17.1.3",
-  "expo-barcode-scanner": "~14.1.3", 
+  "expo-location": "~18.1.5",
   "expo-sensors": "~14.1.4",
-  "expo-file-system": "~18.1.4",
-  "expo-sharing": "~13.1.4",
-  "expo-haptics": "~14.1.4",
-  "react-native-qrcode-svg": "^6.3.11",
+  "expo-file-system": "latest",
+  "expo-sharing": "latest", 
+  "expo-haptics": "latest",
+  "react-native-qrcode-svg": "^6.3.15",
   "@react-native-async-storage/async-storage": "^2.1.2" // already exists
+  // Note: expo-camera (already installed) replaces deprecated expo-barcode-scanner
 }
 ```
 
@@ -393,6 +393,11 @@ App
 - **Scavenger hunts**: Find hidden QR codes/objects with computer vision
 - **Sponsor integration**: Visit sponsor booths, try products with AI verification
 
+**Technical Implementation Note:**
+- **QR/Barcode Scanning**: Uses `expo-camera@16.1.9` with built-in barcode scanning (not deprecated `expo-barcode-scanner`)
+- **Location Services**: Uses `expo-location@18.1.5` for GPS verification
+- **Camera Integration**: `expo-camera` provides unified photo capture + barcode scanning capabilities
+
 **Key Features:**
 - **AI-Powered Verification**: RAG analysis of submitted photos/videos
 - **Probabilistic Scoring**: 80%+ confidence threshold with acceptable false positives
@@ -551,7 +556,20 @@ Prevent spam and encourage intentional sharing:
 **Example Quest Types:**
 - "Take a photo with someone wearing a red hat" → Face detection + color analysis
 - "Capture the main stage during a performance" → Scene recognition + audio analysis
-- "Find the hidden QR code near the food trucks" → QR detection + moderate GPS location check
+- "Find the hidden QR code near the food trucks" → QR detection via `expo-camera` + moderate GPS location check
+
+**QR/Barcode Scanning Implementation:**
+```typescript
+import { CameraView } from 'expo-camera';
+
+// Barcode scanning is built into CameraView - no separate barcode scanner needed
+<CameraView
+  onBarcodeScanned={handleQRCodeScanned}
+  barcodeScannerSettings={{
+    barcodeTypes: ['qr', 'pdf417'],
+  }}
+/>
+```
 
 ### Content Discovery RAG
 **Interest-Based Discovery:**

@@ -5,12 +5,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { PostList } from "@/components/feed/PostList";
+import { FeedToggle } from "@/components/feed/FeedToggle";
 import { CommentModal } from "@/components/social/CommentModal";
 import { PostMenuModal } from "@/components/social/PostMenuModal";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { StoryViewer } from "@/components/stories/StoryViewer";
 import { getFeed, likePost, unlikePost, getStories, getCurrentUser, deletePost, updatePost } from "@/lib/api";
-import { Post, Story, User } from "@/lib/types";
+import { Post, Story, User, FeedType, DEMO_EVENT_CONTEXT } from "@/lib/types";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -38,6 +39,9 @@ export default function HomeScreen() {
 	const [editLocation, setEditLocation] = useState("");
 	const [editLoading, setEditLoading] = useState(false);
 
+	// Phase 2: Dual feed system state
+	const [activeFeedType, setActiveFeedType] = useState<FeedType>('following');
+
 	const { colorScheme } = useColorScheme();
 
 	// Calculate story-related variables
@@ -48,26 +52,35 @@ export default function HomeScreen() {
 		? selectedUserStories.findIndex(s => s.id === selectedStory.id)
 		: 0;
 
-	const loadFeed = async (cursor?: string) => {
-		try {
-			setLoading(true);
-			const data = await getFeed(cursor);
-			
-			if (cursor) {
-				setPosts(prev => [...prev, ...data.posts]);
-			} else {
-				setPosts(data.posts);
+	const loadFeed = useCallback(
+		async (refresh = false, feedType = activeFeedType, cursor?: string) => {
+			try {
+				if (refresh) {
+					setRefreshing(true);
+				} else {
+					setLoading(true);
+				}
+
+				const response = await getFeed(feedType, cursor || (refresh ? undefined : nextCursor), 10);
+				
+				if (cursor || !refresh) {
+					setPosts(prev => refresh ? response.posts : [...prev, ...response.posts]);
+				} else {
+					setPosts(response.posts);
+				}
+				
+				setHasMore(response.has_more);
+				setNextCursor(response.next_cursor);
+			} catch (error) {
+				console.error("Error loading feed:", error);
+				Alert.alert("Error", "Failed to load feed. Please try again.");
+			} finally {
+				setLoading(false);
+				setRefreshing(false);
 			}
-			
-			setHasMore(data.has_more);
-			setNextCursor(data.next_cursor);
-		} catch (error) {
-			console.error("Error loading feed:", error);
-			Alert.alert("Error", "Failed to load feed. Please try again.");
-		} finally {
-			setLoading(false);
-		}
-	};
+		},
+		[nextCursor, activeFeedType],
+	);
 
 	const loadStories = async () => {
 		try {
@@ -88,9 +101,14 @@ export default function HomeScreen() {
 	};
 
 	useEffect(() => {
-		loadFeed();
+		loadFeed(true, activeFeedType);
 		loadStories();
 		loadCurrentUser();
+	}, []);
+
+	// Phase 2: Event context logging (for PoC)
+	useEffect(() => {
+		console.log('Demo Event Context:', DEMO_EVENT_CONTEXT);
 	}, []);
 
 	// Refresh stories when screen comes into focus (e.g., after creating a story)
@@ -100,18 +118,25 @@ export default function HomeScreen() {
 		}, [])
 	);
 
-	const handleRefresh = useCallback(async () => {
-		setRefreshing(true);
-		await loadFeed();
-		await loadStories();
-		setRefreshing(false);
-	}, []);
+	const handleRefresh = useCallback(() => {
+		setNextCursor(undefined);
+		loadFeed(true, activeFeedType);
+		loadStories();
+	}, [loadFeed, activeFeedType]);
+
+	// Phase 2: Handle feed type change
+	const handleFeedTypeChange = useCallback((feedType: FeedType) => {
+		setActiveFeedType(feedType);
+		setNextCursor(undefined);
+		setPosts([]);
+		loadFeed(true, feedType);
+	}, [loadFeed]);
 
 	const handleLoadMore = useCallback(() => {
 		if (!loading && hasMore && nextCursor) {
-			loadFeed(nextCursor);
+			loadFeed(false, activeFeedType, nextCursor);
 		}
-	}, [loading, hasMore, nextCursor]);
+	}, [loading, hasMore, nextCursor, activeFeedType, loadFeed]);
 
 	const handleLike = useCallback(
 		async (postId: string) => {
@@ -295,7 +320,7 @@ export default function HomeScreen() {
 			<View className="flex-1">
 				{/* Header */}
 				<View className="px-4 py-3 border-b border-border">
-					<Text className="text-2xl font-bold">SnapConnect</Text>
+					<Text className="text-2xl font-bold">{DEMO_EVENT_CONTEXT.eventName}</Text>
 				</View>
 
 				{/* Stories Bar */}
@@ -304,6 +329,12 @@ export default function HomeScreen() {
 					currentUser={currentUser}
 					onStoryPress={handleStoryPress}
 					onCreateStory={handleCreateStory}
+				/>
+
+				{/* Phase 2: Feed Toggle */}
+				<FeedToggle
+					activeTab={activeFeedType}
+					onTabChange={handleFeedTypeChange}
 				/>
 
 				{/* Feed */}

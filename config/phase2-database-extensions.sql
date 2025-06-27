@@ -178,7 +178,7 @@ INSERT INTO events (
   content_expires_at,
   is_active
 ) VALUES (
-  'snapconnect-demo-2024',
+  '550e8400-e29b-41d4-a716-446655440000',  -- Valid UUID for demo event
   (SELECT id FROM users LIMIT 1), -- Use first user as organizer
   'SnapConnect Demo Event',
   'Demo event for Phase 2 development and testing',
@@ -200,7 +200,7 @@ INSERT INTO event_participants (
   role
 ) 
 SELECT 
-  'snapconnect-demo-2024',
+  '550e8400-e29b-41d4-a716-446655440000',
   id,
   'Demo User',
   'participant'
@@ -223,7 +223,7 @@ INSERT INTO quests (
   order_index
 ) VALUES 
 (
-  'snapconnect-demo-2024',
+  '550e8400-e29b-41d4-a716-446655440000',
   'Check in at Main Stage',
   'Visit the main stage area and check in to earn points!',
   'location',
@@ -236,7 +236,7 @@ INSERT INTO quests (
   1
 ),
 (
-  'snapconnect-demo-2024',
+  '550e8400-e29b-41d4-a716-446655440000',
   'Snap a Food Truck Photo',
   'Take a photo of any food truck at the event',
   'photo',
@@ -249,7 +249,7 @@ INSERT INTO quests (
   2
 ),
 (
-  'snapconnect-demo-2024',
+  '550e8400-e29b-41d4-a716-446655440000',
   'Meet 3 New People',
   'Start conversations with 3 different attendees',
   'social',
