@@ -750,7 +750,85 @@ export async function getActivities(): Promise<Activity[]> {
 		} = await supabase.auth.getUser();
 		if (!user) throw new Error("User not authenticated");
 
-		const { data, error } = await supabase
+		// Mock gamification activities for demo
+		const mockGamificationActivities: Activity[] = [
+			{
+				id: "activity-gamification-1",
+				user_id: user.id,
+				actor_id: user.id,
+				activity_type: "quest_completed",
+				quest_id: "quest-1",
+				points_earned: 50,
+				is_read: false,
+				created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+				actor: {
+					id: user.id,
+					username: "you",
+					full_name: "You",
+					email: "",
+					bio: undefined,
+					avatar_url: undefined,
+					website: undefined,
+					is_private: false,
+					posts_count: 0,
+					followers_count: 0,
+					following_count: 0,
+					created_at: "",
+					updated_at: "",
+				}
+			},
+			{
+				id: "activity-gamification-2",
+				user_id: user.id,
+				actor_id: user.id,
+				activity_type: "achievement_unlocked",
+				achievement_id: "first-quest",
+				is_read: false,
+				created_at: new Date(Date.now() - 1000 * 60 * 32).toISOString(), // 32 minutes ago
+				actor: {
+					id: user.id,
+					username: "you",
+					full_name: "You",
+					email: "",
+					bio: undefined,
+					avatar_url: undefined,
+					website: undefined,
+					is_private: false,
+					posts_count: 0,
+					followers_count: 0,
+					following_count: 0,
+					created_at: "",
+					updated_at: "",
+				}
+			},
+			{
+				id: "activity-gamification-3",
+				user_id: user.id,
+				actor_id: user.id,
+				activity_type: "rank_updated",
+				rank_position: 3,
+				is_read: false,
+				created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+				actor: {
+					id: user.id,
+					username: "you",
+					full_name: "You",
+					email: "",
+					bio: undefined,
+					avatar_url: undefined,
+					website: undefined,
+					is_private: false,
+					posts_count: 0,
+					followers_count: 0,
+					following_count: 0,
+					created_at: "",
+					updated_at: "",
+				}
+			}
+		];
+
+		// Get regular social activities from database
+		const { data: socialActivities, error } = await supabase
 			.from("activities")
 			.select(
 				`
@@ -768,11 +846,15 @@ export async function getActivities(): Promise<Activity[]> {
 			)
 			.eq("user_id", user.id)
 			.order("created_at", { ascending: false })
-			.limit(50);
+			.limit(20);
 
 		if (error) throw error;
 
-		return data || [];
+		// Combine and sort all activities
+		const allActivities = [...mockGamificationActivities, ...(socialActivities || [])];
+		allActivities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+		return allActivities.slice(0, 50);
 	} catch (error) {
 		console.error("Error fetching activities:", error);
 		throw error;
@@ -1276,6 +1358,105 @@ export async function completeQuest(
 		return completion;
 	} catch (error) {
 		console.error("Error completing quest:", error);
+		throw error;
+	}
+}
+
+// Gamification API Functions
+export async function getLeaderboard(): Promise<import("@/components/gamification/LeaderboardCard").LeaderboardEntry[]> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Mock implementation - in real app, would query database
+		const mockLeaderboard = [
+			{
+				id: "1",
+				participantId: "participant-1",
+				displayName: "Alex Chen",
+				totalPoints: 450,
+				questsCompleted: 9,
+				rankPosition: 1,
+				avatarUrl: undefined,
+				isCurrentUser: false,
+				lastUpdated: new Date().toISOString(),
+			},
+			{
+				id: "2",
+				participantId: "participant-2",
+				displayName: "Sarah Johnson",
+				totalPoints: 380,
+				questsCompleted: 7,
+				rankPosition: 2,
+				avatarUrl: undefined,
+				isCurrentUser: false,
+				lastUpdated: new Date().toISOString(),
+			},
+			{
+				id: "3",
+				participantId: DEMO_EVENT_CONTEXT.participantId,
+				displayName: "Demo User",
+				totalPoints: 320,
+				questsCompleted: 6,
+				rankPosition: 3,
+				avatarUrl: undefined,
+				isCurrentUser: true,
+				lastUpdated: new Date().toISOString(),
+			},
+			{
+				id: "4",
+				participantId: "participant-4",
+				displayName: "Mike Wilson",
+				totalPoints: 290,
+				questsCompleted: 5,
+				rankPosition: 4,
+				avatarUrl: undefined,
+				isCurrentUser: false,
+				lastUpdated: new Date().toISOString(),
+			},
+			{
+				id: "5",
+				participantId: "participant-5",
+				displayName: "Emma Davis",
+				totalPoints: 245,
+				questsCompleted: 4,
+				rankPosition: 5,
+				avatarUrl: undefined,
+				isCurrentUser: false,
+				lastUpdated: new Date().toISOString(),
+			},
+		];
+
+		return mockLeaderboard;
+	} catch (error) {
+		console.error("Error fetching leaderboard:", error);
+		throw error;
+	}
+}
+
+export async function getUserEventStats(): Promise<{
+	totalPoints: number;
+	questsCompleted: number;
+	rank: number;
+}> {
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) throw new Error("User not authenticated");
+
+		// Mock implementation - in real app, would query database
+		const mockStats = {
+			totalPoints: 320,
+			questsCompleted: 6,
+			rank: 3,
+		};
+
+		return mockStats;
+	} catch (error) {
+		console.error("Error fetching user stats:", error);
 		throw error;
 	}
 }

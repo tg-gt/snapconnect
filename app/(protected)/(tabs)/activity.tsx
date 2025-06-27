@@ -12,12 +12,19 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { getActivities, markActivitiesAsRead } from "@/lib/api";
+import { getActivities, markActivitiesAsRead, getUserEventStats } from "@/lib/api";
 import { Activity } from "@/lib/types";
+import { PointsDisplay } from "@/components/gamification/PointsDisplay";
+import { router } from "expo-router";
 
 export default function ActivityScreen() {
 	const { colorScheme } = useColorScheme();
 	const [activities, setActivities] = useState<Activity[]>([]);
+	const [userStats, setUserStats] = useState<{
+		totalPoints: number;
+		questsCompleted: number;
+		rank: number;
+	}>({ totalPoints: 0, questsCompleted: 0, rank: 0 });
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 
@@ -26,8 +33,13 @@ export default function ActivityScreen() {
 		else setLoading(true);
 
 		try {
+			// Load activities
 			const data = await getActivities();
 			setActivities(data);
+
+			// Load user stats for gamification
+			const stats = await getUserEventStats();
+			setUserStats(stats);
 
 			// Mark unread activities as read
 			const unreadIds = data.filter((a) => !a.is_read).map((a) => a.id);
@@ -46,12 +58,26 @@ export default function ActivityScreen() {
 		loadActivities();
 	}, []);
 
+	const handleLeaderboardPress = () => {
+		router.push("/(protected)/leaderboard");
+	};
+
+	const handleAchievementsPress = () => {
+		router.push("/(protected)/leaderboard");
+	};
+
 	const handleActivityPress = (activity: Activity) => {
 		// TODO: Navigate to relevant screen based on activity type
 		if (activity.post_id) {
 			console.log("Navigate to post:", activity.post_id);
 		} else if (activity.activity_type === "follow") {
 			console.log("Navigate to profile:", activity.actor_id);
+		} else if (activity.activity_type === "quest_completed") {
+			// Navigate to quest detail
+			router.push(`/(protected)/quest-detail?questId=${activity.quest_id}`);
+		} else if (activity.activity_type === "achievement_unlocked" || activity.activity_type === "rank_updated") {
+			// Navigate to leaderboard/achievements
+			router.push("/(protected)/leaderboard");
 		}
 	};
 
@@ -83,6 +109,14 @@ export default function ActivityScreen() {
 				return `${username} started following you`;
 			case "mention":
 				return `${username} mentioned you in a comment`;
+			case "quest_completed":
+				return `You completed a quest and earned ${activity.points_earned} points!`;
+			case "achievement_unlocked":
+				return `New achievement unlocked!`;
+			case "points_earned":
+				return `You earned ${activity.points_earned} points!`;
+			case "rank_updated":
+				return `You moved up to rank #${activity.rank_position}!`;
 			default:
 				return `${username} interacted with your content`;
 		}
@@ -110,6 +144,14 @@ export default function ActivityScreen() {
 							? colors.dark.foreground
 							: colors.light.foreground,
 				};
+			case "quest_completed":
+				return { name: "checkmark-circle" as const, color: "#10B981" };
+			case "achievement_unlocked":
+				return { name: "medal" as const, color: "#8B5CF6" };
+			case "points_earned":
+				return { name: "star" as const, color: "#F59E0B" };
+			case "rank_updated":
+				return { name: "trophy" as const, color: "#3B82F6" };
 			default:
 				return {
 					name: "notifications" as const,
@@ -138,6 +180,16 @@ export default function ActivityScreen() {
 				<View className="px-4 py-3 border-b border-border">
 					<Text className="text-2xl font-bold">Activity</Text>
 				</View>
+
+				{/* Points Display */}
+				<PointsDisplay
+					totalPoints={userStats.totalPoints}
+					questsCompleted={userStats.questsCompleted}
+					rank={userStats.rank}
+					achievements={3} // Mock count - would be calculated from actual achievements
+					onLeaderboardPress={handleLeaderboardPress}
+					onAchievementsPress={handleAchievementsPress}
+				/>
 
 				{/* Activities List */}
 				<ScrollView

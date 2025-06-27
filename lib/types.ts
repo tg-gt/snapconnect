@@ -128,9 +128,13 @@ export interface Activity {
 	id: string;
 	user_id: string;
 	actor_id: string;
-	activity_type: "like" | "comment" | "follow" | "mention";
+	activity_type: "like" | "comment" | "follow" | "mention" | "quest_completed" | "achievement_unlocked" | "points_earned" | "rank_updated";
 	post_id?: string;
 	comment_id?: string;
+	quest_id?: string;
+	achievement_id?: string;
+	points_earned?: number;
+	rank_position?: number;
 	is_read: boolean;
 	created_at: string;
 	actor?: User;
