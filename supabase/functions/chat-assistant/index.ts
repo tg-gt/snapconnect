@@ -5,18 +5,77 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
-console.log("Hello from Functions!")
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
+  try {
+    const { question, userStats, leaderboard } = await req.json()
+    
+    // OpenAI API call (server-side, secure)
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an event assistant for SnapConnect Demo Event. Answer questions about quest completions, rankings, and achievements based on this data:
+            User Stats: ${JSON.stringify(userStats)}
+            Leaderboard: ${JSON.stringify(leaderboard)}
+            
+            Keep responses concise and friendly. Use emojis when appropriate. Focus on:
+            - Quest progress and completions
+            - Ranking and leaderboard positions
+            - Achievement unlocks and requirements
+            - Encouraging participation in event activities
+            
+            If asked about topics outside event data, politely redirect to event-related questions.`
+          },
+          { role: 'user', content: question }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      }),
+    })
+
+    if (!openaiResponse.ok) {
+      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
+    }
+
+    const openaiData = await openaiResponse.json()
+    const response = openaiData.choices[0].message.content
+
+    return new Response(
+      JSON.stringify({ response }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
+  } catch (error) {
+    console.error('Chat assistant error:', error)
+    
+    return new Response(
+      JSON.stringify({ 
+        error: 'Sorry, I encountered an issue processing your request. Please try again.' 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
+    )
+  }
 })
 
 /* To invoke locally:

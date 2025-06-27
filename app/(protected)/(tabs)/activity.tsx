@@ -15,6 +15,7 @@ import { colors } from "@/constants/colors";
 import { getActivities, markActivitiesAsRead, getUserEventStats } from "@/lib/api";
 import { Activity } from "@/lib/types";
 import { PointsDisplay } from "@/components/gamification/PointsDisplay";
+import { EventAssistant } from "@/components/chat/EventAssistant";
 import { router } from "expo-router";
 
 export default function ActivityScreen() {
@@ -27,6 +28,7 @@ export default function ActivityScreen() {
 	}>({ totalPoints: 0, questsCompleted: 0, rank: 0 });
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
+	const [showAssistant, setShowAssistant] = useState(false);
 
 	const loadActivities = async (isRefresh = false) => {
 		if (isRefresh) setRefreshing(true);
@@ -280,6 +282,27 @@ export default function ActivityScreen() {
 						</View>
 					)}
 				</ScrollView>
+
+				{/* Floating Chat Button */}
+				<TouchableOpacity
+					className="absolute bottom-6 right-6 bg-primary w-14 h-14 rounded-full items-center justify-center shadow-lg z-10"
+					onPress={() => setShowAssistant(true)}
+					style={{
+						shadowColor: '#000',
+						shadowOffset: { width: 0, height: 2 },
+						shadowOpacity: 0.25,
+						shadowRadius: 3.84,
+						elevation: 5,
+					}}
+				>
+					<Ionicons name="chatbubble" size={24} color="white" />
+				</TouchableOpacity>
+
+				{/* Event Assistant Modal */}
+				<EventAssistant 
+					visible={showAssistant}
+					onClose={() => setShowAssistant(false)}
+				/>
 			</View>
 		</SafeAreaView>
 	);
