@@ -9,6 +9,17 @@ export async function queryEventData(question: string): Promise<string> {
       getLeaderboard()
     ]);
     
+    // Temporary bypass for testing - remove this after debugging
+    if (question.includes('test')) {
+      return `Test response: You have ${userStats.totalPoints} points and rank #${userStats.rank}. ${leaderboard.length} participants in total.`;
+    }
+    
+    console.log('Calling edge function with data:', { 
+      question, 
+      userStatsKeys: Object.keys(userStats),
+      leaderboardLength: leaderboard.length 
+    });
+    
     // Call Supabase Edge Function (secure)
     const { data, error } = await supabase.functions.invoke('chat-assistant', {
       body: {

@@ -16,13 +16,62 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { question, userStats, leaderboard } = await req.json()
+    console.log('Chat assistant function called')
+    
+    // Validate request body
+    let body;
+    try {
+      body = await req.json()
+      console.log('Request body received:', { 
+        hasQuestion: !!body.question, 
+        hasUserStats: !!body.userStats, 
+        hasLeaderboard: !!body.leaderboard 
+      })
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
+
+    const { question, userStats, leaderboard } = body
+    
+    // Validate required fields
+    if (!question) {
+      console.error('Missing question in request')
+      return new Response(
+        JSON.stringify({ error: 'Question is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
+
+    // Check OpenAI API key
+    const openaiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiKey) {
+      console.error('OpenAI API key not found in environment')
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
+
+    console.log('Making OpenAI API call...')
     
     // OpenAI API call (server-side, secure)
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openaiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -49,11 +98,26 @@ Deno.serve(async (req: Request) => {
       }),
     })
 
+    console.log('OpenAI response status:', openaiResponse.status)
+
     if (!openaiResponse.ok) {
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
+      const errorText = await openaiResponse.text()
+      console.error('OpenAI API error:', openaiResponse.status, errorText)
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Sorry, I encountered an issue with the AI service. Please try again.' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
     }
 
     const openaiData = await openaiResponse.json()
+    console.log('OpenAI response received successfully')
+    
     const response = openaiData.choices[0].message.content
 
     return new Response(
@@ -64,15 +128,15 @@ Deno.serve(async (req: Request) => {
       },
     )
   } catch (error) {
-    console.error('Chat assistant error:', error)
+    console.error('Chat assistant function error:', error)
     
     return new Response(
       JSON.stringify({ 
-        error: 'Sorry, I encountered an issue processing your request. Please try again.' 
+        error: 'Sorry, I encountered an unexpected issue. Please try again.' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
       },
     )
   }
