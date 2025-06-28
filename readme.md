@@ -1,7 +1,5 @@
 # SnapConnect: Event Social Operating System
 
-![SnapConnect Social Preview](https://github.com/user-attachments/assets/9697a7da-10aa-4661-bb76-b5bc0dd611f0)
-
 > **Temporary, High-Trust Social Networks for Events**
 > 
 > *Transforming events into private, gamified social experiences through location-based quests, AI-powered discovery, and ephemeral content that disappears when the magic ends.*
