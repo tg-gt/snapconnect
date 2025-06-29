@@ -18,21 +18,85 @@ export default function QuestDetailScreen() {
   const questId = params.questId as string;
   
   // Mock quest data - in real app, this would come from API
-  const [quest] = useState<Quest>({
-    id: questId || 'demo-quest-1',
-    event_id: '550e8400-e29b-41d4-a716-446655440000',
-    title: 'Find the Main Stage',
-    description: 'Navigate to the main stage area and take a photo of the stage setup. This quest will help you get familiar with the venue layout.',
-    quest_type: 'location',
-    points_reward: 50,
-    location_latitude: 37.7749, // Example coordinates (San Francisco)
-    location_longitude: -122.4194,
-    location_radius_meters: 100,
-    required_photo: true,
-    is_active: true,
-    order_index: 1,
-    created_at: new Date().toISOString(),
-  });
+  const getQuestById = (id: string): Quest => {
+    const mockQuests: Quest[] = [
+      {
+        id: 'quest-1',
+        event_id: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Find the Main Stage',
+        description: 'Navigate to the main stage and take a photo of the stage setup. This quest will help you get familiar with the venue layout.',
+        quest_type: 'location',
+        points_reward: 50,
+        location_latitude: 37.7749,
+        location_longitude: -122.4194,
+        location_radius_meters: 100,
+        required_photo: true,
+        is_active: true,
+        order_index: 1,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'quest-2',
+        event_id: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Meet 3 New People',
+        description: 'Start conversations with 3 new attendees and take a group photo together. This is a great way to network and make new connections.',
+        quest_type: 'social',
+        points_reward: 75,
+        location_radius_meters: 0,
+        required_photo: true,
+        is_active: true,
+        order_index: 2,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'quest-3',
+        event_id: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Food Truck Adventure',
+        description: 'Visit the food truck area and try something new. Perfect for exploring the local cuisine!',
+        quest_type: 'location',
+        points_reward: 30,
+        location_latitude: 37.7751,
+        location_longitude: -122.4180,
+        location_radius_meters: 50,
+        required_photo: false,
+        is_active: true,
+        order_index: 3,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'quest-4',
+        event_id: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Capture the Sunset',
+        description: 'Take a stunning photo of the sunset from the venue. Golden hour photography quest!',
+        quest_type: 'photo',
+        points_reward: 40,
+        location_radius_meters: 0,
+        required_photo: true,
+        is_active: true,
+        order_index: 4,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'quest-5',
+        event_id: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Discover Hidden Art',
+        description: 'Find and photograph the hidden art installation somewhere in the venue.',
+        quest_type: 'photo',
+        points_reward: 60,
+        location_latitude: 37.7748,
+        location_longitude: -122.4196,
+        location_radius_meters: 75,
+        required_photo: true,
+        is_active: true,
+        order_index: 5,
+        created_at: new Date().toISOString(),
+      },
+    ];
+    
+    return mockQuests.find(q => q.id === id) || mockQuests[0];
+  };
+  
+  const [quest] = useState<Quest>(getQuestById(questId));
 
   const [questProgress, setQuestProgress] = useState<QuestProgressType>({
     quest,
