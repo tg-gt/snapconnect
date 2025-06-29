@@ -1,177 +1,202 @@
-# 📅 Implementation Tasks
+# 📅 Simplified Implementation Tasks
 
-## **🎯 Goal: Event Join Flow + AI Integration**
+## **🎯 Goal: Event Join Flow + Photo Verification AI**
 
-### **Morning Session : Event Join Flow**
+### **Morning Session: Event Join & Persistence**
 
 #### **Task 1: Create Event Join Screen** 
 ```typescript
 // app/join-event.tsx
 ```
-- [ ] Event code input UI (6-digit codes)
-- [ ] Validation and error states
+- [ ] Simple event code input UI (accepts "SNAP24")
+- [ ] Validation (show error if not "SNAP24")
 - [ ] Loading state during join
-- [ ] Success transition to main app
+- [ ] Save to AsyncStorage and navigate to main app
 
-#### **Task 2: Event Storage Service** 
+#### **Task 2: AsyncStorage Service** 
 ```typescript
 // lib/storage.ts (new file)
 ```
-- [ ] `saveEventContext(context)` - Save to AsyncStorage
+- [ ] `saveEventContext(context)` - Save event + joined timestamp
 - [ ] `getEventContext()` - Retrieve on app start
-- [ ] `clearEventContext()` - For leaving events
-- [ ] `updateEventContext(updates)` - Partial updates
+- [ ] `saveQuestCompletion(questId, data)` - Track completions
+- [ ] `getQuestCompletions()` - Get all completions
+- [ ] `getUserPoints()` - Calculate from completions
 
 #### **Task 3: Update App Entry Point** 
 ```typescript
 // app/_layout.tsx (root layout)
 ```
-- [ ] Check for saved event context on startup
+- [ ] Check AsyncStorage for event context on startup
 - [ ] Redirect to join-event if no context
-- [ ] Pass context to protected routes
+- [ ] Pass to protected routes (simple prop)
 
-#### **Task 4: Welcome Flow Polish** 
+#### **Task 4: Enhance Welcome Screen** 
 ```typescript
-// app/welcome.tsx (enhance existing)
+// app/welcome.tsx (update existing)
 ```
 - [ ] Add "Join Event" button
-- [ ] Value prop messaging
-- [ ] Smooth transition to join-event
+- [ ] Brief value prop text
+- [ ] Navigate to join-event screen
 
 ---
 
-### **Afternoon Session: AI Integration Throughout**
+### **Afternoon Session: Photo Verification AI**
 
-#### **Task 5: AI Quest Recommendations** 
+#### **Task 5: Create Photo Verification Edge Function** 
 ```typescript
-// components/quests/AIQuestRecommendations.tsx (new)
+// supabase/functions/verify-quest-photo/index.ts (new)
 ```
-- [ ] "Recommended for You" section
-- [ ] Based on completed quests + activity
-- [ ] 2-3 suggested quests with AI reasoning
+- [ ] Set up new edge function
+- [ ] Accept base64 photo + quest requirements
+- [ ] Call OpenAI Vision API
+- [ ] Return verified status + confidence
 
+#### **Task 6: Update Quest Detail Screen**
 ```typescript
-// Update app/(protected)/(tabs)/quests.tsx
+// app/(protected)/quest-detail.tsx
 ```
-- [ ] Add AI recommendations at top
-- [ ] Show why quest is recommended
+- [ ] Add camera capture for photo quests
+- [ ] Convert photo to base64
+- [ ] Call verification edge function
+- [ ] Show "Verifying..." state
+- [ ] Handle success (save completion) or retry
 
-#### **Task 6: AI in Discovery Feed** 
+#### **Task 7: Create Quest Completion Flow**
 ```typescript
-// components/feed/AISimilarPosts.tsx (new)
+// components/quests/QuestCompletionCard.tsx (new)
 ```
-- [ ] "People posting similar content" section
-- [ ] Interest-based grouping
-
-```typescript
-// Update lib/api.ts
-```
-- [ ] Add `getAIRecommendedPosts()`
-- [ ] Mock AI-curated content
-
-#### **Task 7: AI Photo Verification UI**
-```typescript
-// components/quests/AIVerificationStatus.tsx (new)
-```
-- [ ] "AI Verifying..." animation
-- [ ] Confidence score display
-- [ ] Success/retry states
-
-```typescript
-// Update app/(protected)/quest-detail.tsx
-```
-- [ ] Integrate AI verification flow
-- [ ] Show verification in progress
-
-#### **Task 8: Quick AI Touch Points** 
-```typescript
-// components/ui/AIBadge.tsx (new)
-```
-- [ ] Small "AI Recommended" badge
-- [ ] Use throughout app where AI is involved
+- [ ] Success state UI (simple green card)
+- [ ] Points earned display
+- [ ] "Continue" button to quest list
 
 ---
 
-### **Evening Session : Integration & Testing**
+### **Evening Session: Points & Progress Integration**
 
-#### **Task 9: Connect Event Join to App** 
-- [ ] Test full flow: Welcome → Join → Main App
-- [ ] Ensure event context updates all tabs
-- [ ] Verify context persistence works
+#### **Task 8: Update Points System** 
+```typescript
+// lib/api.ts (update getUserEventStats)
+```
+- [ ] Read completions from AsyncStorage
+- [ ] Calculate real points from completions
+- [ ] Merge with mock leaderboard data
 
-#### **Task 10: Test AI Features** 
-- [ ] Verify all AI touchpoints work
-- [ ] Check loading states
-- [ ] Ensure graceful fallbacks
+#### **Task 9: Update Quest List** 
+```typescript
+// app/(protected)/(tabs)/quests.tsx
+```
+- [ ] Show completed quests with checkmark
+- [ ] Disable already completed quests
+- [ ] Update quest count from AsyncStorage
+
+#### **Task 10: Test Full Flow** 
+- [ ] Join event with "SNAP24"
+- [ ] Complete a photo quest
+- [ ] Verify points update
+- [ ] Restart app - ensure persistence
+- [ ] Check leaderboard shows your real points
 
 ---
 
-## **📝 Code Snippets to Get Started**
+## **📝 Simplified Code Templates**
 
-### **Event Join Screen Structure:**
+### **Event Join Screen:**
 ```tsx
 // app/join-event.tsx
 export default function JoinEventScreen() {
   const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
   
   const handleJoin = async () => {
-    // Validate code
-    // Save to storage
-    // Navigate to main app
+    if (code !== 'SNAP24') {
+      setError('Invalid event code');
+      return;
+    }
+    
+    await saveEventContext({
+      ...DEMO_EVENT_CONTEXT,
+      joinedAt: new Date().toISOString()
+    });
+    
+    router.replace('/(protected)/(tabs)');
   };
   
   return (
-    <SafeAreaView>
-      <Text>Enter Event Code</Text>
-      <TextInput value={code} onChangeText={setCode} />
-      <Button onPress={handleJoin} loading={loading} />
+    <SafeAreaView className="flex-1 p-4">
+      <Text className="text-2xl font-bold mb-4">Join Event</Text>
+      <Input 
+        value={code} 
+        onChangeText={setCode}
+        placeholder="Enter event code"
+      />
+      {error && <Text className="text-red-500">{error}</Text>}
+      <Button onPress={handleJoin}>Join Event</Button>
     </SafeAreaView>
   );
 }
 ```
 
-### **AI Recommendations Component:**
+### **Photo Verification Call:**
 ```tsx
-// components/quests/AIQuestRecommendations.tsx
-export function AIQuestRecommendations({ quests, userActivity }) {
-  const recommendations = useMemo(() => {
-    // Mock AI logic for now
-    return quests.slice(0, 3).map(quest => ({
-      ...quest,
-      aiReason: "Based on your interest in photography"
-    }));
-  }, [quests, userActivity]);
+// In quest-detail.tsx
+const verifyAndCompleteQuest = async (photoUri: string) => {
+  setVerifying(true);
   
-  return (
-    <View>
-      <Text>Recommended for You 🤖</Text>
-      {recommendations.map(quest => (
-        <QuestCard key={quest.id} quest={quest} showAIBadge />
-      ))}
-    </View>
-  );
-}
+  try {
+    // Convert to base64
+    const base64 = await FileSystem.readAsStringAsync(photoUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    
+    // Call edge function
+    const { data, error } = await supabase.functions.invoke('verify-quest-photo', {
+      body: {
+        photoBase64: base64,
+        questRequirements: quest.description
+      }
+    });
+    
+    console.log('Verification result:', data);
+    
+    if (data.verified) {
+      // Save completion
+      await saveQuestCompletion(quest.id, {
+        photoUrl: photoUri,
+        completedAt: new Date().toISOString(),
+        pointsEarned: quest.points_reward
+      });
+      
+      setCompleted(true);
+    } else {
+      Alert.alert('Try Again', 'Photo doesn\'t match quest requirements');
+    }
+  } finally {
+    setVerifying(false);
+  }
+};
 ```
 
 ---
 
-## **⚡ Pro Tips for Day 1**
+## **⚡ Key Simplifications from Original Plan**
 
-1. **Start with Event Join** - It's the missing critical piece
-2. **Keep AI Simple** - Mock the intelligence, focus on UI
-3. **Test Frequently** - Each feature should work in isolation
-4. **Commit Often** - Small, working increments
-5. **Don't Over-Engineer** - Demo quality, not production
+1. ✅ **No AI recommendations** - Just photo verification
+2. ✅ **Single event code** - "SNAP24" only
+3. ✅ **Simple state** - AsyncStorage + local state
+4. ✅ **Basic UI** - No complex animations
+5. ✅ **Focused scope** - Core flow only
 
 ---
 
-## **🎯 Day 1 Success Metrics**
+## **🎯 Success Metrics**
 
-By end of Day 1, you should have:
-- ✅ Working event join flow with persistence
-- ✅ AI visible in at least 3 places
-- ✅ Smooth app startup with event context
-- ✅ All changes integrated and tested
+By end of implementation:
+- ✅ Can join event with code "SNAP24"
+- ✅ Can complete a photo quest with AI verification
+- ✅ Points persist across app restarts
+- ✅ Leaderboard shows real + mock data
+- ✅ Clean, simple UI throughout
 
-Ready? Let's build! 🚀 
+Ready to build! 🚀 
