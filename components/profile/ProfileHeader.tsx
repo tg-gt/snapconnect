@@ -7,6 +7,20 @@ import { Button } from "@/components/ui/button";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { User } from "@/lib/types";
+import { getUserPoints } from "@/lib/storage";
+import { useEffect, useState } from "react";
+
+// Generate stable mock points based on user ID  
+const getMockPoints = (userId: string): number => {
+	// Use a simple hash of the user ID to generate consistent points
+	let hash = 0;
+	for (let i = 0; i < userId.length; i++) {
+		hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+		hash = hash & hash; // Convert to 32-bit integer
+	}
+	// Return a number between 50 and 250
+	return 50 + Math.abs(hash) % 200;
+};
 
 interface ProfileHeaderProps {
 	user: User;
@@ -28,6 +42,18 @@ export function ProfileHeader({
 	onSettingsPress,
 }: ProfileHeaderProps) {
 	const { colorScheme } = useColorScheme();
+	const [userPoints, setUserPoints] = useState<number | null>(null);
+
+	// Load points for current user
+	useEffect(() => {
+		if (isCurrentUser) {
+			// Real points for current user
+			getUserPoints().then(points => setUserPoints(points));
+		} else {
+			// Stable mock points for other users
+			setUserPoints(getMockPoints(user.id));
+		}
+	}, [isCurrentUser, user.id]);
 
 	return (
 		<View className="px-4 py-6">
@@ -72,7 +98,14 @@ export function ProfileHeader({
 
 			{/* User info */}
 			<View className="mb-4">
-				<Text className="font-semibold text-base mb-1">{user.full_name}</Text>
+				<View className="flex-row items-center">
+					<Text className="font-semibold text-base mb-1">{user.full_name}</Text>
+					{userPoints !== null && (
+						<Text className="text-sm text-muted-foreground ml-2 mb-1">
+							• {userPoints} pts
+						</Text>
+					)}
+				</View>
 				{user.bio && <Text className="text-sm leading-5 mb-2">{user.bio}</Text>}
 				{user.website && (
 					<TouchableOpacity>

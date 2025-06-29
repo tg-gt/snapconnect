@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +6,8 @@ import { Text } from "@/components/ui/text";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { Post } from "@/lib/types";
+import { getUserPoints } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/api";
 
 interface PostCardProps {
 	post: Post;
@@ -18,6 +20,18 @@ interface PostCardProps {
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// Generate stable mock points based on user ID
+const getMockPoints = (userId: string): number => {
+	// Use a simple hash of the user ID to generate consistent points
+	let hash = 0;
+	for (let i = 0; i < userId.length; i++) {
+		hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+		hash = hash & hash; // Convert to 32-bit integer
+	}
+	// Return a number between 50 and 250
+	return 50 + Math.abs(hash) % 200;
+};
+
 export function PostCard({
 	post,
 	onLike,
@@ -28,6 +42,30 @@ export function PostCard({
 }: PostCardProps) {
 	const { colorScheme } = useColorScheme();
 	const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+	const [userPoints, setUserPoints] = useState<number | null>(null);
+	const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+	// Get current user ID on mount
+	useEffect(() => {
+		getCurrentUser().then(user => {
+			if (user) {
+				setCurrentUserId(user.id);
+			}
+		});
+	}, []);
+
+	// Load points based on whether it's the current user
+	useEffect(() => {
+		if (!currentUserId) return;
+		
+		if (post.user_id === currentUserId) {
+			// Real points for current user
+			getUserPoints().then(points => setUserPoints(points));
+		} else {
+			// Stable mock points for other users
+			setUserPoints(getMockPoints(post.user_id));
+		}
+	}, [post.user_id, currentUserId]);
 
 	const handleLike = () => {
 		onLike?.(post.id);
@@ -93,9 +131,16 @@ export function PostCard({
 						)}
 					</View>
 					<View className="flex-1">
-						<Text className="font-semibold text-sm">
-							{post.user?.username || "Unknown User"}
-						</Text>
+						<View className="flex-row items-center">
+							<Text className="font-semibold text-sm">
+								{post.user?.username || "Unknown User"}
+							</Text>
+							{userPoints !== null && (
+								<Text className="text-xs text-muted-foreground ml-2">
+									• {userPoints} pts
+								</Text>
+							)}
+						</View>
 						{post.location && (
 							<Text className="text-xs text-muted-foreground">
 								{post.location}

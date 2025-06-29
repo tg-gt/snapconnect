@@ -8,12 +8,14 @@ import { getEventQuests } from "@/lib/api";
 import { Quest, QuestProgress as QuestProgressType, DEMO_EVENT_CONTEXT } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { getQuestCompletions, getUserPoints } from "@/lib/storage";
+import { EventAssistant } from "@/components/chat/EventAssistant";
 
 export default function QuestsScreen() {
 	const [quests, setQuests] = useState<Quest[]>([]);
 	const [questProgresses, setQuestProgresses] = useState<QuestProgressType[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [selectedCategory, setSelectedCategory] = useState<'all' | 'location' | 'social' | 'photo'>('all');
+	const [showAssistant, setShowAssistant] = useState(false);
 
 	// Load demo quests
 	const loadQuests = useCallback(async () => {
@@ -297,6 +299,27 @@ export default function QuestsScreen() {
 					)}
 				</View>
 			</ScrollView>
+
+			{/* Floating Chat Button */}
+			<TouchableOpacity
+				className="absolute bottom-6 right-6 bg-primary w-14 h-14 rounded-full items-center justify-center shadow-lg z-10"
+				onPress={() => setShowAssistant(true)}
+				style={{
+					shadowColor: '#000',
+					shadowOffset: { width: 0, height: 2 },
+					shadowOpacity: 0.25,
+					shadowRadius: 3.84,
+					elevation: 5,
+				}}
+			>
+				<Ionicons name="chatbubble" size={24} color="white" />
+			</TouchableOpacity>
+
+			{/* Event Assistant Modal */}
+			<EventAssistant 
+				visible={showAssistant}
+				onClose={() => setShowAssistant(false)}
+			/>
 		</SafeAreaView>
 	);
 } 
