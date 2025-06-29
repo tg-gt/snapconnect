@@ -56,108 +56,114 @@ export function ProfileHeader({
 	}, [isCurrentUser, user.id]);
 
 	return (
-		<View className="px-4 py-6">
-			{/* Top row with avatar and stats */}
-			<View className="flex-row items-center mb-4">
-				{/* Avatar */}
-				<View className="w-20 h-20 rounded-full bg-muted mr-6 items-center justify-center">
-					{user.avatar_url ? (
-						<Image
-							source={{ uri: user.avatar_url }}
-							style={{ width: 80, height: 80, borderRadius: 40 }}
-						/>
-					) : (
+		<View>
+			{/* Gradient Background Header */}
+			<View className="gradient-primary h-32 relative">
+				{isCurrentUser && (
+					<TouchableOpacity
+						onPress={onSettingsPress}
+						className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full items-center justify-center"
+					>
 						<Ionicons
-							name="person"
-							size={40}
-							color={
-								colorScheme === "dark"
-									? colors.dark.mutedForeground
-									: colors.light.mutedForeground
-							}
+							name="settings-outline"
+							size={22}
+							color="white"
 						/>
+					</TouchableOpacity>
+				)}
+			</View>
+			
+			<View className="px-4 -mt-12">
+				{/* Avatar */}
+				<View className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 p-1 mb-4">
+					<View className="w-full h-full rounded-full bg-background items-center justify-center overflow-hidden">
+						{user.avatar_url ? (
+							<Image
+								source={{ uri: user.avatar_url }}
+								style={{ width: 88, height: 88, borderRadius: 44 }}
+							/>
+						) : (
+							<Ionicons
+								name="person"
+								size={40}
+								color={
+									colorScheme === "dark"
+										? colors.dark.mutedForeground
+										: colors.light.mutedForeground
+								}
+							/>
+						)}
+					</View>
+				</View>
+
+				{/* User info */}
+				<View className="mb-4">
+					<View className="flex-row items-center mb-2">
+						<Text className="font-bold text-2xl">{user.username}</Text>
+						{userPoints !== null && (
+							<View className="ml-3 bg-gradient-to-r from-purple-500 to-indigo-600 px-3 py-1 rounded-full">
+								<Text className="text-sm text-white font-semibold">
+									{userPoints} pts
+								</Text>
+							</View>
+						)}
+					</View>
+					{user.full_name && (
+						<Text className="font-medium text-base text-muted-foreground mb-2">{user.full_name}</Text>
+					)}
+					{user.bio && <Text className="text-base leading-5 mb-3">{user.bio}</Text>}
+					{user.website && (
+						<TouchableOpacity>
+							<Text className="text-primary text-base font-medium">🔗 {user.website}</Text>
+						</TouchableOpacity>
 					)}
 				</View>
 
 				{/* Stats */}
-				<View className="flex-1 flex-row justify-around">
+				<View className="flex-row justify-around bg-secondary/30 rounded-2xl p-4 mb-4">
 					<View className="items-center">
-						<Text className="font-bold text-lg">{postsCount ?? user.posts_count}</Text>
+						<Text className="font-bold text-2xl">{postsCount ?? user.posts_count}</Text>
 						<Text className="text-muted-foreground text-sm">Posts</Text>
 					</View>
 					<TouchableOpacity className="items-center">
-						<Text className="font-bold text-lg">{user.followers_count}</Text>
+						<Text className="font-bold text-2xl">{user.followers_count}</Text>
 						<Text className="text-muted-foreground text-sm">Followers</Text>
 					</TouchableOpacity>
 					<TouchableOpacity className="items-center">
-						<Text className="font-bold text-lg">{user.following_count}</Text>
+						<Text className="font-bold text-2xl">{user.following_count}</Text>
 						<Text className="text-muted-foreground text-sm">Following</Text>
 					</TouchableOpacity>
 				</View>
-			</View>
 
-			{/* User info */}
-			<View className="mb-4">
-				<View className="flex-row items-center">
-					<Text className="font-semibold text-base mb-1">{user.full_name}</Text>
-					{userPoints !== null && (
-						<Text className="text-sm text-muted-foreground ml-2 mb-1">
-							• {userPoints} pts
-						</Text>
+				{/* Action buttons */}
+				<View className="flex-row gap-3 mb-6">
+					{isCurrentUser ? (
+						<Button onPress={onEditPress} variant="outline" className="flex-1 border-2">
+							<Text className="font-semibold">Edit Profile</Text>
+						</Button>
+					) : (
+						<>
+							<Button
+								onPress={onFollowPress}
+								variant={isFollowing ? "outline" : "default"}
+								className="flex-1"
+							>
+								<Text className="font-semibold">{isFollowing ? "Following" : "Follow"}</Text>
+							</Button>
+							<TouchableOpacity className="w-12 h-12 bg-secondary rounded-lg items-center justify-center">
+								<Ionicons
+									name="mail-outline"
+									size={22}
+									color={
+										colorScheme === "dark"
+											? colors.dark.foreground
+											: colors.light.foreground
+									}
+								/>
+							</TouchableOpacity>
+						</>
 					)}
 				</View>
-				{user.bio && <Text className="text-sm leading-5 mb-2">{user.bio}</Text>}
-				{user.website && (
-					<TouchableOpacity>
-						<Text className="text-blue-500 text-sm">{user.website}</Text>
-					</TouchableOpacity>
-				)}
-			</View>
-
-			{/* Action buttons */}
-			<View className="flex-row space-x-2">
-				{isCurrentUser ? (
-					<>
-						<Button onPress={onEditPress} variant="outline" className="flex-1">
-							<Text>Edit Profile</Text>
-						</Button>
-						<TouchableOpacity
-							onPress={onSettingsPress}
-							className="w-10 h-10 border border-border rounded-md items-center justify-center"
-						>
-							<Ionicons
-								name="settings-outline"
-								size={20}
-								color={
-									colorScheme === "dark"
-										? colors.dark.foreground
-										: colors.light.foreground
-								}
-							/>
-						</TouchableOpacity>
-					</>
-				) : (
-					<>
-						<Button
-							onPress={onFollowPress}
-							variant={isFollowing ? "outline" : "default"}
-							className="flex-1"
-						>
-							<Text>{isFollowing ? "Following" : "Follow"}</Text>
-						</Button>
-						<TouchableOpacity className="w-10 h-10 border border-border rounded-md items-center justify-center">
-							<Ionicons
-								name="mail-outline"
-								size={20}
-								color={
-									colorScheme === "dark"
-										? colors.dark.foreground
-										: colors.light.foreground
-								}
-							/>
-						</TouchableOpacity>
-					</>
-				)}
 			</View>
 		</View>
 	);

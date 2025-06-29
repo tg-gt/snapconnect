@@ -105,50 +105,48 @@ export function PostCard({
 	};
 
 	return (
-		<View className="bg-background mb-4">
+		<View className="bg-card rounded-2xl mb-4 mx-4 shadow-soft overflow-hidden">
 			{/* Header */}
-			<View className="flex-row items-center px-4 py-3 border-b border-border">
+			<View className="flex-row items-center px-4 py-4">
 				<TouchableOpacity
 					onPress={handleProfilePress}
 					className="flex-row items-center flex-1"
 				>
-					<View className="w-8 h-8 rounded-full bg-muted mr-3 items-center justify-center">
+					<View className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 mr-3 items-center justify-center overflow-hidden">
 						{post.user?.avatar_url ? (
 							<Image
 								source={{ uri: post.user.avatar_url }}
-								style={{ width: 32, height: 32, borderRadius: 16 }}
+								style={{ width: 40, height: 40, borderRadius: 20 }}
 							/>
 						) : (
 							<Ionicons
 								name="person"
-								size={16}
-								color={
-									colorScheme === "dark"
-										? colors.dark.mutedForeground
-										: colors.light.mutedForeground
-								}
+								size={20}
+								color="white"
 							/>
 						)}
 					</View>
 					<View className="flex-1">
 						<View className="flex-row items-center">
-							<Text className="font-semibold text-sm">
+							<Text className="font-bold text-base">
 								{post.user?.username || "Unknown User"}
 							</Text>
 							{userPoints !== null && (
-								<Text className="text-xs text-muted-foreground ml-2">
-									• {userPoints} pts
-								</Text>
+								<View className="ml-2 bg-primary/10 px-2 py-0.5 rounded-full">
+									<Text className="text-xs text-primary font-semibold">
+										{userPoints} pts
+									</Text>
+								</View>
 							)}
 						</View>
 						{post.location && (
-							<Text className="text-xs text-muted-foreground">
-								{post.location}
+							<Text className="text-xs text-muted-foreground mt-0.5">
+								📍 {post.location}
 							</Text>
 						)}
 					</View>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={handleMenu}>
+				<TouchableOpacity onPress={handleMenu} className="p-2 -m-2">
 					<Ionicons
 						name="ellipsis-horizontal"
 						size={20}
@@ -167,16 +165,16 @@ export function PostCard({
 					<Image
 						source={{ uri: post.media[currentMediaIndex]?.media_url }}
 						style={{
-							width: screenWidth,
-							height: screenWidth,
+							width: screenWidth - 32,
+							height: screenWidth - 32,
 							backgroundColor:
 								colorScheme === "dark" ? colors.dark.muted : colors.light.muted,
 						}}
 						contentFit="cover"
 					/>
 					{post.media.length > 1 && (
-						<View className="absolute bottom-3 right-3 bg-black/50 px-2 py-1 rounded-full">
-							<Text className="text-white text-xs">
+						<View className="absolute bottom-3 right-3 bg-black/70 px-2.5 py-1 rounded-full">
+							<Text className="text-white text-xs font-medium">
 								{currentMediaIndex + 1}/{post.media.length}
 							</Text>
 						</View>
@@ -185,26 +183,26 @@ export function PostCard({
 			)}
 
 			{/* Actions */}
-			<View className="px-4 py-3">
+			<View className="px-4 py-4">
 				<View className="flex-row items-center justify-between mb-3">
-					<View className="flex-row space-x-4">
-						<TouchableOpacity onPress={handleLike}>
+					<View className="flex-row gap-4">
+						<TouchableOpacity onPress={handleLike} className="active:scale-110 transition-transform">
 							<Ionicons
 								name={post.is_liked ? "heart" : "heart-outline"}
-								size={24}
+								size={28}
 								color={
 									post.is_liked
-										? "#FF3040"
+										? "#ec4899"
 										: colorScheme === "dark"
 											? colors.dark.foreground
 											: colors.light.foreground
 								}
 							/>
 						</TouchableOpacity>
-						<TouchableOpacity onPress={handleComment}>
+						<TouchableOpacity onPress={handleComment} className="active:scale-110 transition-transform">
 							<Ionicons
 								name="chatbubble-outline"
-								size={24}
+								size={26}
 								color={
 									colorScheme === "dark"
 										? colors.dark.foreground
@@ -212,10 +210,10 @@ export function PostCard({
 								}
 							/>
 						</TouchableOpacity>
-						<TouchableOpacity onPress={handleShare}>
+						<TouchableOpacity onPress={handleShare} className="active:scale-110 transition-transform">
 							<Ionicons
 								name="paper-plane-outline"
-								size={24}
+								size={26}
 								color={
 									colorScheme === "dark"
 										? colors.dark.foreground
@@ -224,10 +222,10 @@ export function PostCard({
 							/>
 						</TouchableOpacity>
 					</View>
-					<TouchableOpacity>
+					<TouchableOpacity className="active:scale-110 transition-transform">
 						<Ionicons
 							name="bookmark-outline"
-							size={24}
+							size={26}
 							color={
 								colorScheme === "dark"
 									? colors.dark.foreground
@@ -240,7 +238,7 @@ export function PostCard({
 				{/* Likes count */}
 				{post.likes_count > 0 && (
 					<TouchableOpacity className="mb-2">
-						<Text className="font-semibold text-sm">
+						<Text className="font-bold text-base">
 							{post.likes_count.toLocaleString()}{" "}
 							{post.likes_count === 1 ? "like" : "likes"}
 						</Text>
@@ -250,8 +248,8 @@ export function PostCard({
 				{/* Caption */}
 				{post.caption && (
 					<View className="mb-2">
-						<Text className="text-sm">
-							<Text className="font-semibold">{post.user?.username} </Text>
+						<Text className="text-base leading-5">
+							<Text className="font-bold">{post.user?.username} </Text>
 							{post.caption}
 						</Text>
 					</View>
@@ -260,15 +258,15 @@ export function PostCard({
 				{/* Comments preview */}
 				{post.comments_count > 0 && (
 					<TouchableOpacity onPress={handleComment} className="mb-2">
-						<Text className="text-muted-foreground text-sm">
+						<Text className="text-muted-foreground text-sm font-medium">
 							View all {post.comments_count} comments
 						</Text>
 					</TouchableOpacity>
 				)}
 
 				{/* Timestamp */}
-				<Text className="text-xs text-muted-foreground">
-					{formatTimeAgo(post.created_at)}
+				<Text className="text-xs text-muted-foreground uppercase font-medium">
+					{formatTimeAgo(post.created_at)} ago
 				</Text>
 			</View>
 		</View>
