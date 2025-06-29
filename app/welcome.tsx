@@ -21,16 +21,30 @@ export default function WelcomeScreen() {
 		<SafeAreaView className="flex flex-1 bg-background p-4">
 			<View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
 				<Image source={appIcon} className="w-16 h-16 rounded-xl" />
-				        <H1 className="text-center">Welcome to EventOS</H1>
+				        <H1 className="text-center">Welcome to SnapConnect</H1>
 				<Muted className="text-center">
-					A privacy-first event social platform with gamification and AI-powered
-					features for immersive event experiences.
+					Transform any event into a gamified social experience. Connect with attendees, 
+					complete quests, and make lasting connections through AI-powered discovery.
 				</Muted>
 			</View>
 			<View className="flex flex-col gap-y-4 web:m-4">
 				<Button
 					size="default"
 					variant="default"
+					onPress={() => {
+						router.push("/join-event");
+					}}
+				>
+					<Text>Join Event</Text>
+				</Button>
+				<View className="flex flex-row items-center gap-x-2 py-2">
+					<View className="flex-1 h-[1px] bg-border" />
+					<Muted>or create an account</Muted>
+					<View className="flex-1 h-[1px] bg-border" />
+				</View>
+				<Button
+					size="default"
+					variant="secondary"
 					onPress={() => {
 						router.push("/sign-up");
 					}}
@@ -39,7 +53,7 @@ export default function WelcomeScreen() {
 				</Button>
 				<Button
 					size="default"
-					variant="secondary"
+					variant="outline"
 					onPress={() => {
 						router.push("/sign-in");
 					}}
