@@ -7,6 +7,7 @@ import { QuestCard } from "@/components/quests/QuestCard";
 import { getEventQuests } from "@/lib/api";
 import { Quest, QuestProgress as QuestProgressType, DEMO_EVENT_CONTEXT } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
+import { getQuestCompletions, getUserPoints } from "@/lib/storage";
 
 export default function QuestsScreen() {
 	const [quests, setQuests] = useState<Quest[]>([]);
@@ -96,14 +97,31 @@ export default function QuestsScreen() {
 
 			setQuests(mockQuests);
 
-			// Initialize quest progress
-			const mockProgresses: QuestProgressType[] = mockQuests.map((quest, index) => ({
-				quest,
-				is_in_range: false,
-				can_complete: false,
-				progress_percentage: index === 0 ? 75 : index === 1 ? 50 : 10, // Mock different progress levels
-				distance_to_location: undefined,
-			}));
+			// Get completed quests from storage
+			const completedQuests = await getQuestCompletions();
+			const completedQuestIds = completedQuests.map(c => c.questId);
+
+			// Initialize quest progress with completion status
+			const mockProgresses: QuestProgressType[] = mockQuests.map((quest, index) => {
+				const isCompleted = completedQuestIds.includes(quest.id);
+				const completion = completedQuests.find(c => c.questId === quest.id);
+				
+				return {
+					quest,
+					is_in_range: false,
+					can_complete: false,
+					progress_percentage: isCompleted ? 100 : (index === 0 ? 75 : index === 1 ? 50 : 10),
+					distance_to_location: undefined,
+					completion: isCompleted ? {
+						id: 'completion-' + quest.id,
+						quest_id: quest.id,
+						participant_id: DEMO_EVENT_CONTEXT.participantId,
+						points_earned: completion?.pointsEarned || quest.points_reward,
+						completed_at: completion?.completedAt || new Date().toISOString(),
+						verified: true,
+					} : undefined,
+				};
+			});
 
 			setQuestProgresses(mockProgresses);
 		} catch (error) {
@@ -148,12 +166,17 @@ export default function QuestsScreen() {
 		return qp.quest.quest_type === selectedCategory;
 	});
 
+	// Stats state
+	const [totalPoints, setTotalPoints] = useState(0);
+	
+	// Load real points from storage
+	useEffect(() => {
+		getUserPoints().then(points => setTotalPoints(points));
+	}, [questProgresses]);
+	
 	// Calculate stats
 	const totalQuests = questProgresses.length;
 	const completedQuests = questProgresses.filter(qp => qp.completion?.verified).length;
-	const totalPoints = questProgresses.reduce((sum, qp) => {
-		return sum + (qp.completion?.verified ? qp.quest.points_reward : 0);
-	}, 0);
 
 	const getQuestTypeIcon = (type: string) => {
 		switch (type) {

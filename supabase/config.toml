@@ -9,3 +9,14 @@ entrypoint = "./functions/chat-assistant/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/chat-assistant/*.html" ]
+
+[functions.verify-quest-photo]
+enabled = true
+verify_jwt = true
+import_map = "./functions/verify-quest-photo/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/verify-quest-photo/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/verify-quest-photo/*.html" ]

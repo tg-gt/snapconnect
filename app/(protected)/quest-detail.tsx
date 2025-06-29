@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from '@/components/safe-area-view';
@@ -8,6 +8,10 @@ import { LocationTracker } from '@/components/quests/LocationTracker';
 import { Quest, QuestProgress as QuestProgressType, LocationData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { supabase } from '@/config/supabase';
+import { saveQuestCompletion, isQuestCompleted } from '@/lib/storage';
 
 export default function QuestDetailScreen() {
   const params = useLocalSearchParams();
@@ -39,6 +43,33 @@ export default function QuestDetailScreen() {
   });
 
   const [isCompleting, setIsCompleting] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  // Check if quest is already completed on mount
+  useEffect(() => {
+    async function checkCompletion() {
+      const completed = await isQuestCompleted(quest.id);
+      if (completed) {
+        setIsCompleted(true);
+        setQuestProgress(prev => ({
+          ...prev,
+          completion: {
+            id: 'completion-existing',
+            quest_id: quest.id,
+            participant_id: 'demo-participant-123',
+            points_earned: quest.points_reward,
+            completed_at: new Date().toISOString(),
+            verified: true,
+          },
+          progress_percentage: 100,
+          can_complete: false,
+        }));
+      }
+    }
+    checkCompletion();
+  }, [quest.id]);
 
   // Handle location updates from LocationTracker
   const handleLocationUpdate = (location: LocationData, distance: number, inRange: boolean) => {
@@ -46,8 +77,8 @@ export default function QuestDetailScreen() {
       ...prev,
       distance_to_location: distance,
       is_in_range: inRange,
-      can_complete: inRange && quest.required_photo ? false : inRange, // Need photo if required
-      progress_percentage: inRange ? (quest.required_photo ? 75 : 100) : Math.max(20, 100 - (distance / quest.location_radius_meters) * 80),
+      can_complete: inRange && quest.required_photo ? (capturedPhoto !== null) : inRange, // Need photo if required
+      progress_percentage: inRange ? (quest.required_photo ? (capturedPhoto ? 100 : 75) : 100) : Math.max(20, 100 - (distance / quest.location_radius_meters) * 80),
     }));
   };
 
@@ -104,14 +135,121 @@ export default function QuestDetailScreen() {
     }
   };
 
-  // Handle photo capture for photo quests
-  const handleTakePhoto = () => {
-    // Navigate to camera screen (to be implemented in Week 2)
-    Alert.alert('Coming Soon', 'Camera functionality will be available soon!');
-    // router.push({
-    //   pathname: '/(protected)/quest-camera',
-    //   params: { questId: quest.id },
-    // });
+  // Handle photo capture and verification
+  const handleTakePhoto = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is needed to take photos for quests.');
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8, // Reduce quality to keep file size manageable
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const photoUri = result.assets[0].uri;
+        setCapturedPhoto(photoUri);
+        
+        // Verify the photo
+        await verifyAndCompleteQuest(photoUri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  // Verify photo with AI and complete quest
+  const verifyAndCompleteQuest = async (photoUri: string) => {
+    setIsVerifying(true);
+    
+    try {
+      // Convert photo to base64
+      const base64 = await FileSystem.readAsStringAsync(photoUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      console.log('Sending photo for verification...');
+      
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke('verify-quest-photo', {
+        body: {
+          photoBase64: base64,
+          questRequirements: quest.description
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Verification result:', data);
+      
+      if (data.verified) {
+        // Save completion to storage
+        await saveQuestCompletion(quest.id, {
+          photoUrl: photoUri,
+          completedAt: new Date().toISOString(),
+          pointsEarned: quest.points_reward
+        });
+        
+        // Haptic feedback
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        
+        // Update UI state
+        setIsCompleted(true);
+        setQuestProgress(prev => ({
+          ...prev,
+          completion: {
+            id: 'completion-' + Date.now(),
+            quest_id: quest.id,
+            participant_id: 'demo-participant-123',
+            points_earned: quest.points_reward,
+            completed_at: new Date().toISOString(),
+            verified: true,
+          },
+          progress_percentage: 100,
+          can_complete: false,
+        }));
+        
+        Alert.alert(
+          'Quest Completed! 🎉',
+          `${data.reason}\n\nYou earned ${quest.points_reward} points!`,
+          [
+            {
+              text: 'Awesome!',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Try Again',
+          data.reason || 'Photo doesn\'t match quest requirements. Please try again.',
+          [
+            {
+              text: 'Retake Photo',
+              onPress: () => {
+                setCapturedPhoto(null);
+                handleTakePhoto();
+              }
+            },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      Alert.alert('Verification Failed', 'Unable to verify photo. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   // Handle view on map
@@ -234,7 +372,7 @@ export default function QuestDetailScreen() {
           <QuestProgress questProgress={questProgress} />
 
           {/* Photo Section */}
-          {quest.required_photo && (
+          {quest.required_photo && !isCompleted && (
             <View className="bg-white dark:bg-gray-800 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -244,15 +382,30 @@ export default function QuestDetailScreen() {
               </View>
               
               <Text className="text-gray-600 dark:text-gray-300 mb-4">
-                Take a photo to complete this quest. Make sure to capture the main stage clearly.
+                Take a photo to complete this quest. Make sure to capture what's described in the quest.
               </Text>
+              
+              {capturedPhoto && (
+                <View className="mb-4">
+                  <Image 
+                    source={{ uri: capturedPhoto }} 
+                    className="w-full h-48 rounded-lg mb-2"
+                    resizeMode="cover"
+                  />
+                  {isVerifying && (
+                    <View className="flex-row items-center justify-center py-2">
+                      <Text className="text-blue-600 font-medium">AI Verifying Photo...</Text>
+                    </View>
+                  )}
+                </View>
+              )}
               
               <TouchableOpacity
                 onPress={handleTakePhoto}
-                disabled={!questProgress.is_in_range}
+                disabled={!questProgress.is_in_range || isVerifying}
                 className={cn(
                   'flex-row items-center justify-center py-3 px-4 rounded-lg',
-                  questProgress.is_in_range
+                  questProgress.is_in_range && !isVerifying
                     ? 'bg-blue-600'
                     : 'bg-gray-300 dark:bg-gray-600'
                 )}
@@ -260,20 +413,20 @@ export default function QuestDetailScreen() {
                 <Ionicons 
                   name="camera" 
                   size={20} 
-                  className={questProgress.is_in_range ? "text-white mr-2" : "text-gray-500 mr-2"} 
+                  className={questProgress.is_in_range && !isVerifying ? "text-white mr-2" : "text-gray-500 mr-2"} 
                 />
                 <Text className={cn(
                   'font-medium',
-                  questProgress.is_in_range ? 'text-white' : 'text-gray-500'
+                  questProgress.is_in_range && !isVerifying ? 'text-white' : 'text-gray-500'
                 )}>
-                  Take Photo
+                  {capturedPhoto ? 'Retake Photo' : 'Take Photo'}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Completion Button */}
-          {!questProgress.completion?.verified && (
+          {!questProgress.completion?.verified && !isCompleted && (
             <TouchableOpacity
               onPress={handleCompleteQuest}
               disabled={!questProgress.can_complete || isCompleting}

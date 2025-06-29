@@ -1370,8 +1370,13 @@ export async function getLeaderboard(): Promise<import("@/components/gamificatio
 		} = await supabase.auth.getUser();
 		if (!user) throw new Error("User not authenticated");
 
-		// Mock implementation - in real app, would query database
-		const mockLeaderboard = [
+		// Import storage functions to get real user data
+		const { getUserPoints, getQuestCompletions } = await import('@/lib/storage');
+		const realUserPoints = await getUserPoints();
+		const realCompletions = await getQuestCompletions();
+
+		// Mock leaderboard data
+		let mockLeaderboard = [
 			{
 				id: "1",
 				participantId: "participant-1",
@@ -1397,9 +1402,9 @@ export async function getLeaderboard(): Promise<import("@/components/gamificatio
 			{
 				id: "3",
 				participantId: DEMO_EVENT_CONTEXT.participantId,
-				displayName: "Demo User",
-				totalPoints: 320,
-				questsCompleted: 6,
+				displayName: "You",
+				totalPoints: realUserPoints > 0 ? realUserPoints : 320,
+				questsCompleted: realCompletions.length > 0 ? realCompletions.length : 6,
 				rankPosition: 3,
 				avatarUrl: undefined,
 				isCurrentUser: true,
@@ -1429,6 +1434,12 @@ export async function getLeaderboard(): Promise<import("@/components/gamificatio
 			},
 		];
 
+		// Re-sort and update rank positions based on actual points
+		mockLeaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+		mockLeaderboard.forEach((entry, index) => {
+			entry.rankPosition = index + 1;
+		});
+
 		return mockLeaderboard;
 	} catch (error) {
 		console.error("Error fetching leaderboard:", error);
@@ -1447,14 +1458,35 @@ export async function getUserEventStats(): Promise<{
 		} = await supabase.auth.getUser();
 		if (!user) throw new Error("User not authenticated");
 
-		// Mock implementation - in real app, would query database
-		const mockStats = {
-			totalPoints: 320,
-			questsCompleted: 6,
-			rank: 3,
-		};
+		// Import storage functions
+		const { getUserPoints, getQuestCompletions } = await import('@/lib/storage');
+		
+		// Get real user data from AsyncStorage
+		const realPoints = await getUserPoints();
+		const completions = await getQuestCompletions();
+		
+		// Get leaderboard to calculate rank
+		const leaderboard = await getLeaderboard();
+		
+		// Find user's position (if not in top 5, they're lower)
+		let userRank = 6; // Default to 6th place if not in top 5
+		const userEntry = leaderboard.find(entry => entry.isCurrentUser);
+		if (userEntry) {
+			userRank = userEntry.rankPosition;
+		}
+		
+		// If user has real points, update their rank based on that
+		if (realPoints > 0) {
+			// Count how many people have more points
+			const peopleWithMorePoints = leaderboard.filter(entry => entry.totalPoints > realPoints).length;
+			userRank = peopleWithMorePoints + 1;
+		}
 
-		return mockStats;
+		return {
+			totalPoints: realPoints > 0 ? realPoints : 320, // Use real points or default
+			questsCompleted: completions.length > 0 ? completions.length : 6, // Use real completions or default
+			rank: userRank,
+		};
 	} catch (error) {
 		console.error("Error fetching user stats:", error);
 		throw error;
