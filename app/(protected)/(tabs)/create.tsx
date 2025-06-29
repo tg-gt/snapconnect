@@ -62,7 +62,7 @@ export default function CreateScreen() {
 						text: "OK",
 						onPress: () => {
 							// Navigate to home feed to see the new post
-							router.replace("/(protected)/(tabs)/index");
+							router.navigate("/");
 						},
 					},
 				],
@@ -99,7 +99,7 @@ export default function CreateScreen() {
 						text: "OK",
 						onPress: () => {
 							// Navigate to home feed to see stories
-							router.replace("/(protected)/(tabs)/index");
+							router.navigate("/");
 						},
 					},
 				],
@@ -123,8 +123,8 @@ export default function CreateScreen() {
 	};
 
 	const handleClose = () => {
-		// Navigate back to home tab
-		router.replace("/(protected)/(tabs)/index");
+		// Navigate back to the previous screen
+		router.back();
 	};
 
 	// Camera mode
