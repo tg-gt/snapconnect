@@ -84,7 +84,7 @@ export default function QuestDetailScreen() {
 
   // Handle quest completion
   const handleCompleteQuest = async () => {
-    if (!questProgress.can_complete) {
+    if (!questProgress.can_complete && !quest.required_photo) {
       Alert.alert(
         'Cannot Complete Quest',
         'You need to be in range of the quest location to complete it.',
@@ -384,6 +384,11 @@ export default function QuestDetailScreen() {
               <Text className="text-gray-600 dark:text-gray-300 mb-4">
                 Take a photo to complete this quest. Make sure to capture what's described in the quest.
               </Text>
+              {!questProgress.is_in_range && (
+                <Text className="text-amber-600 text-sm mb-2">
+                  Note: Location check bypassed for demo purposes.
+                </Text>
+              )}
               
               {capturedPhoto && (
                 <View className="mb-4">
@@ -402,10 +407,10 @@ export default function QuestDetailScreen() {
               
               <TouchableOpacity
                 onPress={handleTakePhoto}
-                disabled={!questProgress.is_in_range || isVerifying}
+                disabled={isVerifying}
                 className={cn(
                   'flex-row items-center justify-center py-3 px-4 rounded-lg',
-                  questProgress.is_in_range && !isVerifying
+                  !isVerifying
                     ? 'bg-blue-600'
                     : 'bg-gray-300 dark:bg-gray-600'
                 )}
@@ -413,11 +418,11 @@ export default function QuestDetailScreen() {
                 <Ionicons 
                   name="camera" 
                   size={20} 
-                  className={questProgress.is_in_range && !isVerifying ? "text-white mr-2" : "text-gray-500 mr-2"} 
+                  className={!isVerifying ? "text-white mr-2" : "text-gray-500 mr-2"} 
                 />
                 <Text className={cn(
                   'font-medium',
-                  questProgress.is_in_range && !isVerifying ? 'text-white' : 'text-gray-500'
+                  !isVerifying ? 'text-white' : 'text-gray-500'
                 )}>
                   {capturedPhoto ? 'Retake Photo' : 'Take Photo'}
                 </Text>
