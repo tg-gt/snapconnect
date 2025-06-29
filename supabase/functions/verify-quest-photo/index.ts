@@ -25,18 +25,18 @@ async function verifyPhotoWithOpenAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a quest verification assistant for an event app. Analyze photos to determine if they meet quest requirements. Be reasonable but ensure the photo genuinely matches the requirements.',
+            content: 'You are a quest verification assistant for an event app. Analyze photos to determine if they meet quest requirements. Be reasonable but ensure the photo genuinely matches the requirements. Always respond with valid JSON only.',
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Quest Requirements: ${questRequirements}\n\nDoes this photo meet the quest requirements? Respond with a JSON object containing:\n- verified: boolean (true if requirements are met)\n- confidence: number (0-1, how confident you are)\n- reason: string (brief explanation)`,
+                text: `Quest Requirements: ${questRequirements}\n\nDoes this photo meet the quest requirements? Respond ONLY with a JSON object (no markdown, no code blocks) containing:\n- verified: boolean (true if requirements are met)\n- confidence: number (0-1, how confident you are)\n- reason: string (brief explanation)`,
               },
               {
                 type: 'image_url',
@@ -57,7 +57,16 @@ async function verifyPhotoWithOpenAI(
     }
 
     const data = await response.json()
-    const content = data.choices[0].message.content
+    let content = data.choices[0].message.content
+
+    // Strip markdown code blocks if present
+    content = content.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '')
+    
+    // Also try to extract JSON from the content if it's wrapped in other text
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      content = jsonMatch[0]
+    }
 
     // Parse the JSON response from GPT-4
     try {
@@ -69,6 +78,7 @@ async function verifyPhotoWithOpenAI(
       }
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError)
+      console.error('Raw content:', content)
       return {
         verified: false,
         confidence: 0,

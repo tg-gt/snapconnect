@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from '@/components/safe-area-view';
@@ -147,13 +147,15 @@ export default function QuestDetailScreen() {
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions?.Images || ['images'],
         allowsEditing: false,
         quality: 0.8, // Reduce quality to keep file size manageable
       });
 
       if (!result.canceled && result.assets[0]) {
         const photoUri = result.assets[0].uri;
+        console.log('Photo URI:', photoUri);
+        console.log('Photo URI type:', photoUri.substring(0, 20));
         setCapturedPhoto(photoUri);
         
         // Verify the photo
@@ -170,12 +172,39 @@ export default function QuestDetailScreen() {
     setIsVerifying(true);
     
     try {
-      // Convert photo to base64
-      const base64 = await FileSystem.readAsStringAsync(photoUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      let base64 = '';
+      
+      // Handle different platforms
+      if (Platform.OS === 'web') {
+        console.log('Converting image for web platform...');
+        
+        if (photoUri.startsWith('data:')) {
+          // It's already a data URI, extract the base64 part
+          base64 = photoUri.split(',')[1];
+        } else {
+          // For blob URLs or any other web URL
+          const response = await fetch(photoUri);
+          const blob = await response.blob();
+          base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              resolve(dataUrl.split(',')[1]);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+      } else {
+        // Native platforms (iOS/Android) - use FileSystem
+        console.log('Converting image for native platform...');
+        base64 = await FileSystem.readAsStringAsync(photoUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
       
       console.log('Sending photo for verification...');
+      console.log('Base64 length:', base64.length);
       
       // Call edge function
       const { data, error } = await supabase.functions.invoke('verify-quest-photo', {
