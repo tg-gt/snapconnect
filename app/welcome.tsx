@@ -6,7 +6,7 @@ import { Image } from "@/components/image";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, Muted } from "@/components/ui/typography";
+import { H1, Lead, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
 
 export default function WelcomeScreen() {
@@ -20,12 +20,23 @@ export default function WelcomeScreen() {
 	return (
 		<SafeAreaView className="flex flex-1 bg-background p-4">
 			<View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
-				<Image source={appIcon} className="w-16 h-16 rounded-xl" />
-				        <H1 className="text-center">Welcome to SnapConnect</H1>
-				<Muted className="text-center">
+				{/* Stylish EventOS Logo */}
+				<View className="mb-6 items-center">
+					<View className="flex-row">
+						<Text className="text-6xl font-black text-purple-600">Event</Text>
+						<Text className="text-6xl font-black text-blue-600">OS</Text>
+					</View>
+					<View className="flex-row mt-2 gap-1">
+						<View className="h-1 w-20 bg-purple-600 rounded-full" />
+						<View className="h-1 w-20 bg-blue-600 rounded-full" />
+					</View>
+				</View>
+				
+				<H1 className="text-center">Welcome to EventOS</H1>
+				<Lead className="text-center text-lg px-4">
 					Transform any event into a gamified social experience. Connect with attendees, 
 					complete quests, and make lasting connections through AI-powered discovery.
-				</Muted>
+				</Lead>
 			</View>
 			<View className="flex flex-col gap-y-4 web:m-4">
 				<Button
